@@ -57,6 +57,7 @@ func main() {
 	log.Println("監視を開始しました:", setting.Dir)
 
 	recentChanged := map[string]struct{}{}
+	recentSent := map[string]time.Time{}
 	timer := time.NewTimer(100 * time.Millisecond)
 	timer.Stop()
 	for {
@@ -73,6 +74,12 @@ func main() {
 		case err := <-watcher.Errors:
 			log.Println("エラーが発生しました:", err)
 		case <-timer.C:
+			n := time.Now()
+			for k := range recentSent {
+				if n.Sub(recentSent[k]) > 3*time.Second {
+					delete(recentSent, k)
+				}
+			}
 			t := L.NewTable()
 			for k := range recentChanged {
 				s1, e1 := os.Stat(k)
@@ -83,7 +90,11 @@ func main() {
 				if math.Abs(s1.ModTime().Sub(s2.ModTime()).Seconds()) > setting.Delta {
 					continue
 				}
+				if _, found := recentSent[k]; found {
+					continue
+				}
 				t.Append(lua.LString(k))
+				recentSent[k] = n
 			}
 			if t.Len() == 0 {
 				continue
