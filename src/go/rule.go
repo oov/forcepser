@@ -9,8 +9,8 @@ import (
 )
 
 type rule struct {
-	Layer    int
 	File     string
+	Layer    int
 	Encoding string
 	RE       *regexp.Regexp
 }
