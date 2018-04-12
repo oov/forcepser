@@ -49,12 +49,14 @@ func main() {
 	}
 	defer watcher.Close()
 
-	err = watcher.Add(setting.Dir)
-	if err != nil {
-		log.Fatalln("監視フォルダーの登録中にエラーが発生しました:", err)
+	log.Println("監視を開始します:")
+	for _, dir := range setting.Dirs() {
+		log.Println("  " + dir)
+		err = watcher.Add(dir)
+		if err != nil {
+			log.Fatalln("監視フォルダーの登録中にエラーが発生しました:", err)
+		}
 	}
-
-	log.Println("監視を開始しました:", setting.Dir)
 
 	recentChanged := map[string]struct{}{}
 	recentSent := map[string]time.Time{}

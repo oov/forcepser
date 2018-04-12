@@ -4,19 +4,20 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 
 	toml "github.com/pelletier/go-toml"
 )
 
 type rule struct {
+	Dir      string
 	File     string
-	Layer    int
 	Encoding string
+	Layer    int
 	RE       *regexp.Regexp
 }
 
 type setting struct {
-	Dir   string
 	Delta float64
 	Rule  []rule
 }
@@ -82,12 +83,26 @@ func newSetting(path string) (*setting, error) {
 }
 
 func (ss *setting) Find(path string) *rule {
+	dir := filepath.Dir(path)
 	base := filepath.Base(path)
 	for i := range ss.Rule {
 		r := &ss.Rule[i]
-		if r.RE.MatchString(base) {
+		if dir == r.Dir && r.RE.MatchString(base) {
 			return r
 		}
 	}
 	return nil
+}
+
+func (ss *setting) Dirs() []string {
+	dirs := map[string]struct{}{}
+	for i := range ss.Rule {
+		dirs[ss.Rule[i].Dir] = struct{}{}
+	}
+	r := make([]string, 0, len(dirs))
+	for k := range dirs {
+		r = append(r, k)
+	}
+	sort.Strings(r)
+	return r
 }
