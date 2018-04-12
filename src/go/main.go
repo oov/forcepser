@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/yuin/gluare"
 	lua "github.com/yuin/gopher-lua"
 )
 
@@ -30,13 +31,17 @@ func main() {
 	L := lua.NewState()
 	defer L.Close()
 
+	L.PreloadModule("re", gluare.Loader)
+	if err = L.DoString(`re = require("re")`); err != nil {
+		log.Fatalln("Lua スクリプト環境の初期化中にエラーが発生しました:", err)
+	}
+
 	L.SetGlobal("debug_print", L.NewFunction(luaDebugPrint))
 	L.SetGlobal("readproject", L.NewFunction(luaReadProject))
 	L.SetGlobal("sendfile", L.NewFunction(luaSendFile))
 	L.SetGlobal("findrule", L.NewFunction(luaFindRule(setting)))
 	L.SetGlobal("getaudioinfo", L.NewFunction(luaGetAudioInfo))
 	L.SetGlobal("tosjis", L.NewFunction(luaToSJIS))
-	L.SetGlobal("fromsjis", L.NewFunction(luaFromSJIS))
 	L.SetGlobal("toexostring", L.NewFunction(luaToEXOString))
 
 	if err := L.DoFile("_entrypoint.lua"); err != nil {

@@ -1,10 +1,13 @@
 package main
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
+
+	"golang.org/x/text/encoding/japanese"
 
 	toml "github.com/pelletier/go-toml"
 )
@@ -12,9 +15,13 @@ import (
 type rule struct {
 	Dir      string
 	File     string
+	Text     string
 	Encoding string
 	Layer    int
-	RE       *regexp.Regexp
+	Modifier string
+
+	fileRE *regexp.Regexp
+	textRE *regexp.Regexp
 }
 
 type setting struct {
@@ -49,24 +56,11 @@ func makeWildcard(s string) (*regexp.Regexp, error) {
 }
 
 func newSetting(path string) (*setting, error) {
-	f, err := os.Open(path)
+	f, err := openTextFile(path)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
-
-	// skip BOM
-	var bom [3]byte
-	_, err = f.ReadAt(bom[:], 0)
-	if err != nil {
-		return nil, err
-	}
-	if bom[0] == 0xef && bom[1] == 0xbb && bom[2] == 0xbf {
-		_, err = f.Seek(3, os.SEEK_SET)
-		if err != nil {
-			return nil, err
-		}
-	}
 
 	var s setting
 	err = toml.NewDecoder(f).Decode(&s)
@@ -74,24 +68,83 @@ func newSetting(path string) (*setting, error) {
 		return nil, err
 	}
 	for i := range s.Rule {
-		s.Rule[i].RE, err = makeWildcard(s.Rule[i].File)
+		s.Rule[i].fileRE, err = makeWildcard(s.Rule[i].File)
 		if err != nil {
 			return nil, err
+		}
+		if s.Rule[i].Text != "" {
+			s.Rule[i].textRE, err = regexp.Compile(s.Rule[i].Text)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	return &s, nil
 }
 
-func (ss *setting) Find(path string) *rule {
+func (ss *setting) Find(path string) (*rule, string, error) {
 	dir := filepath.Dir(path)
 	base := filepath.Base(path)
+	textRaw, err := readFile(path[:len(path)-4] + ".txt")
+	if err != nil {
+		return nil, "", err
+	}
+	var u8, sjis *string
+
 	for i := range ss.Rule {
 		r := &ss.Rule[i]
-		if dir == r.Dir && r.RE.MatchString(base) {
-			return r
+		if dir != r.Dir {
+			continue
+		}
+		if !r.fileRE.MatchString(base) {
+			continue
+		}
+		if r.textRE != nil {
+			switch r.Encoding {
+			case "utf8":
+				if u8 == nil {
+					t := string(textRaw)
+					u8 = &t
+				}
+				if !r.textRE.MatchString(*u8) {
+					continue
+				}
+			case "sjis":
+				if sjis == nil {
+					b, err := japanese.ShiftJIS.NewDecoder().Bytes(textRaw)
+					if err != nil {
+						return nil, "", err
+					}
+					t := string(b)
+					sjis = &t
+				}
+				if !r.textRE.MatchString(*sjis) {
+					continue
+				}
+			}
+		}
+		switch r.Encoding {
+		case "utf8":
+			if u8 == nil {
+				t := string(textRaw)
+				u8 = &t
+			}
+			return r, *u8, nil
+		case "sjis":
+			if sjis == nil {
+				b, err := japanese.ShiftJIS.NewDecoder().Bytes(textRaw)
+				if err != nil {
+					return nil, "", err
+				}
+				t := string(b)
+				sjis = &t
+			}
+			return r, *sjis, nil
+		default:
+			panic("unexcepted encoding value: " + r.Encoding)
 		}
 	}
-	return nil
+	return nil, "", nil
 }
 
 func (ss *setting) Dirs() []string {
@@ -105,4 +158,41 @@ func (ss *setting) Dirs() []string {
 	}
 	sort.Strings(r)
 	return r
+}
+
+func readFile(path string) ([]byte, error) {
+	f, err := openTextFile(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	b, err := ioutil.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
+func openTextFile(path string) (*os.File, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+
+	// skip BOM
+	var bom [3]byte
+	_, err = f.ReadAt(bom[:], 0)
+	if err != nil {
+		f.Close()
+		return nil, err
+	}
+	if bom[0] == 0xef && bom[1] == 0xbb && bom[2] == 0xbf {
+		_, err = f.Seek(3, os.SEEK_SET)
+		if err != nil {
+			f.Close()
+			return nil, err
+		}
+	}
+	return f, nil
 }

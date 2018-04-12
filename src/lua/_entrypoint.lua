@@ -9,32 +9,14 @@ function changed(files)
 
   for i, file in ipairs(files) do
     debug_print("  " .. file)
-    local rule = findrule(file)
+    local rule, text = findrule(file)
     if rule ~= nil then
       debug_print("    適合するルールが見つかりました: " .. rule.file .. " / 挿入先レイヤー: " .. rule.layer)
-      local text = readtext(file:sub(1, #file - 4) .. ".txt", rule.encoding)
-      if text ~= nil then
-        drop(proj, file, text, rule.layer)
-      else
-        debug_print("    テキストファイルの読み込みに失敗しました。")
-      end
+      drop(proj, file, text, rule.layer)
     else
       debug_print("    適合するルールが見つかりません。")
     end
   end
-end
-
-function readtext(filepath, encoding)
-  local f = io.open(filepath, "rb")
-  if f == nil then
-    return nil
-  end
-  local b = f:read("*all")
-  f:close()
-  if encoding == "sjis" then
-    b = fromsjis(b)
-  end
-  return b
 end
 
 function drop(proj, file, text, layer)

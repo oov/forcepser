@@ -6,6 +6,7 @@ import (
 	"unicode/utf16"
 
 	"github.com/oov/audio/wave"
+	"github.com/yuin/gluare"
 	lua "github.com/yuin/gopher-lua"
 	"golang.org/x/text/encoding/japanese"
 )
@@ -17,16 +18,37 @@ func luaDebugPrint(L *lua.LState) int {
 
 func luaFindRule(ss *setting) lua.LGFunction {
 	return func(L *lua.LState) int {
-		rule := ss.Find(L.ToString(1))
+		rule, text, err := ss.Find(L.ToString(1))
+		if err != nil {
+			L.RaiseError("マッチ条件の検索中にエラーが発生しました: %v", err)
+		}
 		if rule == nil {
 			return 0
 		}
+
+		if rule.Modifier != "" {
+			L2 := lua.NewState()
+			defer L2.Close()
+			L2.PreloadModule("re", gluare.Loader)
+			if err = L2.DoString(`re = require("re")`); err != nil {
+				L.RaiseError("modifier スクリプトの初期化中にエラーが発生しました: %v", err)
+			}
+			L2.SetGlobal("text", lua.LString(text))
+			if err := L2.DoString(rule.Modifier); err != nil {
+				L.RaiseError("modifier スクリプトの実行中にエラーが発生しました: %v", err)
+			}
+			text = L2.GetGlobal("text").String()
+		}
+
 		t := L.NewTable()
+		t.RawSetString("dir", lua.LString(rule.Dir))
 		t.RawSetString("file", lua.LString(rule.File))
 		t.RawSetString("encoding", lua.LString(rule.Encoding))
+		t.RawSetString("text", lua.LString(rule.Text))
 		t.RawSetString("layer", lua.LNumber(rule.Layer))
 		L.Push(t)
-		return 1
+		L.Push(lua.LString(text))
+		return 2
 	}
 }
 
@@ -51,15 +73,6 @@ func luaGetAudioInfo(L *lua.LState) int {
 
 func luaToSJIS(L *lua.LState) int {
 	s, err := japanese.ShiftJIS.NewEncoder().String(L.ToString(1))
-	if err != nil {
-		return 0
-	}
-	L.Push(lua.LString(s))
-	return 1
-}
-
-func luaFromSJIS(L *lua.LState) int {
-	s, err := japanese.ShiftJIS.NewDecoder().String(L.ToString(1))
 	if err != nil {
 		return 0
 	}
