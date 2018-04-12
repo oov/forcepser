@@ -74,7 +74,7 @@ func main() {
 				timer.Reset(100 * time.Millisecond)
 			}
 		case err := <-watcher.Errors:
-			log.Println("エラーが発生しました:", err)
+			log.Println("監視中にエラーが発生しました:", err)
 		case <-timer.C:
 			n := time.Now()
 			for k := range recentSent {
@@ -107,7 +107,7 @@ func main() {
 				NRet:    0,
 				Protect: true,
 			}, t); err != nil {
-				log.Fatal(err)
+				log.Println("ファイルの処理中にエラーが発生しました:", err)
 			}
 		}
 	}
