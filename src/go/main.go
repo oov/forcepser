@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -13,6 +14,11 @@ import (
 	"github.com/yuin/gluare"
 	lua "github.com/yuin/gopher-lua"
 )
+
+type file struct {
+	Filepath string
+	ModDate  time.Time
+}
 
 func main() {
 	log.Println("かんしくん", version)
@@ -87,7 +93,7 @@ func main() {
 					delete(recentSent, k)
 				}
 			}
-			t := L.NewTable()
+			var files []file
 			for k := range recentChanged {
 				s1, e1 := os.Stat(k)
 				s2, e2 := os.Stat(k[:len(k)-4] + ".txt")
@@ -100,11 +106,16 @@ func main() {
 				if _, found := recentSent[k]; found {
 					continue
 				}
-				t.Append(lua.LString(k))
+				files = append(files, file{k, s1.ModTime()})
 				recentSent[k] = n
 			}
-			if t.Len() == 0 {
+			if len(files) == 0 {
 				continue
+			}
+			sort.Slice(files, func(i, j int) bool { return files[i].ModDate.Before(files[j].ModDate) })
+			t := L.NewTable()
+			for _, f := range files {
+				t.Append(lua.LString(f.Filepath))
 			}
 			recentChanged = map[string]struct{}{}
 			if err := L.CallByParam(lua.P{
