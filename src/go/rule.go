@@ -54,6 +54,19 @@ func newSetting(path string) (*setting, error) {
 	}
 	defer f.Close()
 
+	// skip BOM
+	var bom [3]byte
+	_, err = f.ReadAt(bom[:], 0)
+	if err != nil {
+		return nil, err
+	}
+	if bom[0] == 0xef && bom[1] == 0xbb && bom[2] == 0xbf {
+		_, err = f.Seek(3, os.SEEK_SET)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	var s setting
 	err = toml.NewDecoder(f).Decode(&s)
 	if err != nil {
