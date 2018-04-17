@@ -55,12 +55,12 @@ func luaFindRule(ss *setting) lua.LGFunction {
 func luaGetAudioInfo(L *lua.LState) int {
 	f, err := os.Open(L.ToString(1))
 	if err != nil {
-		return 0
+		L.RaiseError("ファイルが開けません: %v", err)
 	}
 	defer f.Close()
 	r, wfe, err := wave.NewLimitedReader(f)
 	if err != nil {
-		return 0
+		L.RaiseError("Wave ファイルの読み取りに失敗しました: %v", err)
 	}
 	t := L.NewTable()
 	t.RawSetString("samplerate", lua.LNumber(wfe.Format.SamplesPerSec))
@@ -74,7 +74,7 @@ func luaGetAudioInfo(L *lua.LState) int {
 func luaToSJIS(L *lua.LState) int {
 	s, err := japanese.ShiftJIS.NewEncoder().String(L.ToString(1))
 	if err != nil {
-		return 0
+		L.RaiseError("文字列を Shift_JIS に変換できません: %v", err)
 	}
 	L.Push(lua.LString(s))
 	return 1

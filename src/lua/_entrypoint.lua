@@ -17,8 +17,12 @@ function changed(files, trycount)
     local rule, text = findrule(file)
     if rule ~= nil then
       debug_print("    適合するルールが見つかりました: " .. rule.file .. " / 挿入先レイヤー: " .. rule.layer)
-      if drop(proj, file, text, rule.layer) then
+      local ok, err = pcall(drop, proj, file, text, rule.layer)
+      if ok then
         table.insert(success, file)
+        debug_print("      拡張編集へドロップしました。")
+      else
+        debug_print("      処理中にエラーが発生しました: " .. err)
       end
     else
       debug_print("    適合するルールが見つかりません。")
@@ -30,11 +34,6 @@ end
 
 function drop(proj, file, text, layer)
   local ai = getaudioinfo(file)
-  if ai == nil then
-    debug_print("      オーディオファイルからの情報取得に失敗しました。")
-    return false
-  end
-
   local length = math.floor((ai.samples * proj.video_rate) / (ai.samplerate * proj.video_scale))
   local exo = {}
   table.insert(exo, "[exedit]")
@@ -101,17 +100,11 @@ function drop(proj, file, text, layer)
   table.insert(exo, "回転=0.00")
   table.insert(exo, "blend=0")
   exo = tosjis(table.concat(exo, "\r\n"))
-  if exo == nil then
-    debug_print("      exo ファイルの作成に失敗しました。")
-    return false
-  end
   f, err = io.open("temp.exo", "wb")
   if f == nil then
-    debug_print("      一時ファイルの作成に失敗しました: " .. err)
-    return false
+    error("exo ファイルが作成できません: " .. err)
   end
   f:write(exo)
   f:close()
   sendfile(proj.window, layer, length, {"temp.exo"})
-  return true
 end
