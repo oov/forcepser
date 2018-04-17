@@ -139,7 +139,7 @@ func main() {
 				var found bool
 				for k := range recentChanged {
 					ct := recentChanged[k]
-					if ct == 4 {
+					if ct == 9 {
 						log.Println("たくさん失敗したのでこのファイルは諦めます:", k)
 						delete(recentChanged, k)
 						continue
@@ -148,7 +148,7 @@ func main() {
 					found = true
 				}
 				if found {
-					timer.Reset(300 * time.Millisecond)
+					timer.Reset(500 * time.Millisecond)
 				}
 			} else {
 				log.Println("処理後の戻り値が異常です")
