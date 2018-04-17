@@ -1,29 +1,38 @@
 -- ファイルに変更があったときに呼ばれる関数
-function changed(files)
+function changed(files, trycount)
   debug_print("ファイルの更新を検知:")
   local proj = readproject()
   if proj == nil then
     debug_print("  エラー: ごちゃまぜドロップスから AviUtl のプロジェクト情報が取得できませんでした。")
-    return
+    return {}
   end
 
+  local success = {}
   for i, file in ipairs(files) do
-    debug_print("  " .. file)
+    if trycount[i] == 0 then
+      debug_print("  " .. file)
+    else
+      debug_print("  " .. file .. " " .. (trycount[i]+1) .. "回目")
+    end
     local rule, text = findrule(file)
     if rule ~= nil then
       debug_print("    適合するルールが見つかりました: " .. rule.file .. " / 挿入先レイヤー: " .. rule.layer)
-      drop(proj, file, text, rule.layer)
+      if drop(proj, file, text, rule.layer) then
+        table.insert(success, file)
+      end
     else
       debug_print("    適合するルールが見つかりません。")
+      table.insert(success, file)
     end
   end
+  return success
 end
 
 function drop(proj, file, text, layer)
   local ai = getaudioinfo(file)
   if ai == nil then
     debug_print("      オーディオファイルからの情報取得に失敗しました。")
-    return
+    return false
   end
 
   local length = math.floor((ai.samples * proj.video_rate) / (ai.samplerate * proj.video_scale))
@@ -94,14 +103,15 @@ function drop(proj, file, text, layer)
   exo = tosjis(table.concat(exo, "\r\n"))
   if exo == nil then
     debug_print("      exo ファイルの作成に失敗しました。")
-    return
+    return false
   end
   f, err = io.open("temp.exo", "wb")
   if f == nil then
     debug_print("      一時ファイルの作成に失敗しました: " .. err)
-    return
+    return false
   end
   f:write(exo)
   f:close()
   sendfile(proj.window, layer, length, {"temp.exo"})
+  return true
 end

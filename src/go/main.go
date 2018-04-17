@@ -18,6 +18,7 @@ import (
 type file struct {
 	Filepath string
 	ModDate  time.Time
+	TryCount int
 }
 
 func main() {
@@ -69,7 +70,7 @@ func main() {
 		}
 	}
 
-	recentChanged := map[string]struct{}{}
+	recentChanged := map[string]int{}
 	recentSent := map[string]time.Time{}
 	timer := time.NewTimer(100 * time.Millisecond)
 	timer.Stop()
@@ -81,20 +82,20 @@ func main() {
 			}
 			ext := strings.ToLower(filepath.Ext(event.Name))
 			if ext == ".wav" || ext == ".txt" {
-				recentChanged[event.Name[:len(event.Name)-len(ext)]+".wav"] = struct{}{}
+				recentChanged[event.Name[:len(event.Name)-len(ext)]+".wav"] = 0
 				timer.Reset(100 * time.Millisecond)
 			}
 		case err := <-watcher.Errors:
 			log.Println("監視中にエラーが発生しました:", err)
 		case <-timer.C:
-			n := time.Now()
+			now := time.Now()
 			for k := range recentSent {
-				if n.Sub(recentSent[k]) > 3*time.Second {
+				if now.Sub(recentSent[k]) > 3*time.Second {
 					delete(recentSent, k)
 				}
 			}
 			var files []file
-			for k := range recentChanged {
+			for k, tryCount := range recentChanged {
 				s1, e1 := os.Stat(k)
 				s2, e2 := os.Stat(k[:len(k)-4] + ".txt")
 				if e1 != nil || e2 != nil {
@@ -106,25 +107,54 @@ func main() {
 				if _, found := recentSent[k]; found {
 					continue
 				}
-				files = append(files, file{k, s1.ModTime()})
-				recentSent[k] = n
+				files = append(files, file{k, s1.ModTime(), tryCount})
 			}
 			if len(files) == 0 {
 				continue
 			}
 			sort.Slice(files, func(i, j int) bool { return files[i].ModDate.Before(files[j].ModDate) })
 			t := L.NewTable()
+			tc := L.NewTable()
 			for _, f := range files {
 				t.Append(lua.LString(f.Filepath))
+				tc.Append(lua.LNumber(f.TryCount))
 			}
-			recentChanged = map[string]struct{}{}
 			if err := L.CallByParam(lua.P{
 				Fn:      L.GetGlobal("changed"),
-				NRet:    0,
+				NRet:    1,
 				Protect: true,
-			}, t); err != nil {
+			}, t, tc); err != nil {
 				log.Println("ファイルの処理中にエラーが発生しました:", err)
 			}
+			rv := L.ToTable(-1)
+			if rv != nil {
+				// remove processed entries
+				n := rv.MaxN()
+				for i := 1; i <= n; i++ {
+					k := rv.RawGetInt(i).String()
+					recentSent[k] = now
+					delete(recentChanged, k)
+				}
+				// increment retry count
+				var found bool
+				for k := range recentChanged {
+					ct := recentChanged[k]
+					if ct == 4 {
+						log.Println("たくさん失敗したのでこのファイルは諦めます:", k)
+						delete(recentChanged, k)
+						continue
+					}
+					recentChanged[k] = ct + 1
+					found = true
+				}
+				if found {
+					timer.Reset(300 * time.Millisecond)
+				}
+			} else {
+				log.Println("処理後の戻り値が異常です")
+			}
+			L.Pop(1)
+
 		}
 	}
 }
