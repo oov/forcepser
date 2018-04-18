@@ -22,5 +22,5 @@ EOS
 
 # build forcepser.exe
 pushd src/go > /dev/null
-go.exe build -x -ldflags="-s" -o ../../bin/forcepser.exe
+env.exe GOARCH=386 go build -x -ldflags="-s" -o ../../bin/forcepser.exe
 popd > /dev/null
