@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strings"
 
 	"golang.org/x/text/encoding/japanese"
 
@@ -25,8 +26,9 @@ type rule struct {
 }
 
 type setting struct {
-	Delta float64
-	Rule  []rule
+	BaseDir string
+	Delta   float64
+	Rule    []rule
 }
 
 func makeWildcard(s string) (*regexp.Regexp, error) {
@@ -68,12 +70,14 @@ func newSetting(path string) (*setting, error) {
 		return nil, err
 	}
 	for i := range s.Rule {
-		s.Rule[i].fileRE, err = makeWildcard(s.Rule[i].File)
+		r := &s.Rule[i]
+		r.Dir = strings.NewReplacer("%BASEDIR%", s.BaseDir).Replace(r.Dir)
+		r.fileRE, err = makeWildcard(r.File)
 		if err != nil {
 			return nil, err
 		}
-		if s.Rule[i].Text != "" {
-			s.Rule[i].textRE, err = regexp.Compile(s.Rule[i].Text)
+		if r.Text != "" {
+			r.textRE, err = regexp.Compile(r.Text)
 			if err != nil {
 				return nil, err
 			}
