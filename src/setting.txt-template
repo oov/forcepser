@@ -1,73 +1,20 @@
+# ルール定義の基準になるフォルダー
+basedir = 'C:\your\folder'
+
 # *.wav と *.txt の更新日時の差が何秒以内なら２つのファイルをセットとして認識するか
 delta = 15.0
 
 # 反応ルールの書き方:
-#
-# 以下のようなものを任意の個数記述することで、フォルダーとファイル名によって振り分けできます。
-# 
-# [[rule]]
-# dir = '監視したいフォルダー'
-# file = '反応させたいファイル名'
-# text = '''反応させたいテキスト内容（省略可）'''
-# encoding = 'テキストファイルの文字コード'
-# layer = レイヤー番号
-# modifier = '''テキストの加工処理（省略可）'''
-#
-#   監視したいフォルダー:
-#       監視したいファイルがあるフォルダーの名前を指定します。
-#   反応させたいファイル名:
-#       以下の特殊文字が使えます。
-#       ?: 任意の1文字
-#       *: 任意の0文字以上
-#   反応させたいテキスト内容:
-#       ファイル名だけで判断しきれない時は、正規表現でテキスト本文からも判定できます。
-#       対応構文: https://github.com/google/re2/wiki/Syntax (\Cを除く)
-#   テキストファイルの文字コード:
-#       以下の２種類が使えます。
-#       'sjis': Shift_JIS
-#       'utf8': UTF-8
-#   レイヤー番号:
-#       1 ～ 100: 指定されたレイヤー番号へ挿入
-#   テキストの加工処理:
-#       投げ込む前にテキストを加工したい場合に使用します。
-#       Lua 5.1 が使用可能で、re という正規表現モジュールも使えます。
-#       https://github.com/yuin/gluare#lua-functions
-#
-#   例:
-#     C:\myfolder\15_キャラ名_セリフ.wav を Layer 1 へ挿入したい場合
-#     [[rule]]
-#     dir = 'C:\myfolder'
-#     file = '*_キャラ名_*.wav'
-#     encoding = 'utf8'
-#     layer = 1
-#
-#     C:\myfolder\180411_235958_キャラ名_セリフ.wav を Layer 5 へ挿入したい場合
-#     [[rule]]
-#     dir = 'C:\myfolder'
-#     file = '??????_??????_キャラ名_*.wav'
-#     encoding = 'sjis'
-#     layer = 5
-#
-#     C:\myfolder\aaaa.wav を Layer 10 へ挿入したい場合（ただしテキストが「あいうえお＞」で始まる場合のみ）
-#     [[rule]]
-#     dir = 'C:\myfolder'
-#     file = '*.wav'
-#     text = '''^あいうえお＞'''
-#     encoding = 'sjis'
-#     layer = 10
-#     modifier = '''
-#       -- テキストの先頭にある ほげほげ＞ を除去
-#       text = re.gsub(text, "^.*?＞", "")
-#     '''
+# https://github.com/oov/forcepser/wiki/%E8%A8%AD%E5%AE%9A%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6
 
 [[rule]]
-dir = 'C:\myfolder'
+dir = '%BASEDIR%'
 file = '*_キャラの名前1_*.wav'
 encoding = 'sjis'
 layer = 1
 
 [[rule]]
-dir = 'C:\myfolder'
+dir = '%BASEDIR%'
 file = '*_キャラの名前2_*.wav'
 encoding = 'sjis'
 layer = 6
