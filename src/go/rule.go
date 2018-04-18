@@ -8,9 +8,9 @@ import (
 	"sort"
 	"strings"
 
-	"golang.org/x/text/encoding/japanese"
-
 	toml "github.com/pelletier/go-toml"
+	"github.com/pkg/errors"
+	"golang.org/x/text/encoding/japanese"
 )
 
 type rule struct {
@@ -117,7 +117,7 @@ func (ss *setting) Find(path string) (*rule, string, error) {
 				if sjis == nil {
 					b, err := japanese.ShiftJIS.NewDecoder().Bytes(textRaw)
 					if err != nil {
-						return nil, "", err
+						continue // this file is not written in Shift_JIS.
 					}
 					t := string(b)
 					sjis = &t
@@ -138,7 +138,7 @@ func (ss *setting) Find(path string) (*rule, string, error) {
 			if sjis == nil {
 				b, err := japanese.ShiftJIS.NewDecoder().Bytes(textRaw)
 				if err != nil {
-					return nil, "", err
+					return nil, "", errors.Wrap(err, "cannot convert encoding to shift_jis")
 				}
 				t := string(b)
 				sjis = &t
@@ -167,13 +167,13 @@ func (ss *setting) Dirs() []string {
 func readFile(path string) ([]byte, error) {
 	f, err := openTextFile(path)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to openTextFile")
 	}
 	defer f.Close()
 
 	b, err := ioutil.ReadAll(f)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "ioutil.ReadAll failed")
 	}
 	return b, nil
 }
@@ -181,7 +181,7 @@ func readFile(path string) ([]byte, error) {
 func openTextFile(path string) (*os.File, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "os.Open failed")
 	}
 
 	// skip BOM
@@ -189,13 +189,13 @@ func openTextFile(path string) (*os.File, error) {
 	_, err = f.ReadAt(bom[:], 0)
 	if err != nil {
 		f.Close()
-		return nil, err
+		return nil, errors.Wrap(err, "cannot read first 3bytes")
 	}
 	if bom[0] == 0xef && bom[1] == 0xbb && bom[2] == 0xbf {
 		_, err = f.Seek(3, os.SEEK_SET)
 		if err != nil {
 			f.Close()
-			return nil, err
+			return nil, errors.Wrap(err, "failed to seek")
 		}
 	}
 	return f, nil
