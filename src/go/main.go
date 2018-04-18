@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/pkg/errors"
 	"github.com/yuin/gluare"
 	lua "github.com/yuin/gopher-lua"
 )
@@ -21,26 +22,19 @@ type file struct {
 	TryCount int
 }
 
-func main() {
-	log.Println("かんしくん", version)
-
-	flag.Parse()
-
-	settingFile := flag.Arg(0)
-	if settingFile == "" {
-		settingFile = "setting.txt"
-	}
+func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[string]int, recentSent map[string]time.Time, timer *time.Timer) error {
 	setting, err := newSetting(settingFile)
 	if err != nil {
-		log.Fatalln(settingFile+" の読み込みに失敗しました:", err)
+		return errors.Wrap(err, "設定の読み込みに失敗しました")
 	}
 
 	L := lua.NewState()
 	defer L.Close()
 
 	L.PreloadModule("re", gluare.Loader)
-	if err = L.DoString(`re = require("re")`); err != nil {
-		log.Fatalln("Lua スクリプト環境の初期化中にエラーが発生しました:", err)
+	err = L.DoString(`re = require("re")`)
+	if err != nil {
+		return errors.Wrap(err, "Lua スクリプト環境の初期化中にエラーが発生しました")
 	}
 
 	L.SetGlobal("debug_print", L.NewFunction(luaDebugPrint))
@@ -52,32 +46,29 @@ func main() {
 	L.SetGlobal("toexostring", L.NewFunction(luaToEXOString))
 
 	if err := L.DoFile("_entrypoint.lua"); err != nil {
-		log.Fatalln("_entrypoint.lua の実行中にエラーが発生しました:", err)
+		return errors.Wrap(err, "_entrypoint.lua の実行中にエラーが発生しました")
 	}
-
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.Fatalln("監視処理の準備中にエラーが発生しました:", err)
-	}
-	defer watcher.Close()
 
 	log.Println("監視を開始します:")
 	for _, dir := range setting.Dirs() {
 		log.Println("  " + dir)
 		err = watcher.Add(dir)
 		if err != nil {
-			log.Fatalln("監視フォルダーの登録中にエラーが発生しました:", err)
+			return errors.Wrap(err, "監視フォルダーの登録中にエラーが発生しました")
 		}
+		defer watcher.Remove(dir)
 	}
 
-	recentChanged := map[string]int{}
-	recentSent := map[string]time.Time{}
-	timer := time.NewTimer(100 * time.Millisecond)
-	timer.Stop()
+	var reload bool
 	for {
 		select {
 		case event := <-watcher.Events:
 			if event.Op&(fsnotify.Create|fsnotify.Write) == 0 {
+				continue
+			}
+			if event.Name == settingFile {
+				reload = true
+				timer.Reset(100 * time.Millisecond)
 				continue
 			}
 			ext := strings.ToLower(filepath.Ext(event.Name))
@@ -88,6 +79,13 @@ func main() {
 		case err := <-watcher.Errors:
 			log.Println("監視中にエラーが発生しました:", err)
 		case <-timer.C:
+			if reload {
+				log.Println()
+				log.Println("設定ファイルを再読み込みします")
+				log.Println()
+				return nil
+			}
+
 			now := time.Now()
 			for k := range recentSent {
 				if now.Sub(recentSent[k]) > 3*time.Second {
@@ -154,7 +152,51 @@ func main() {
 				log.Println("処理後の戻り値が異常です")
 			}
 			L.Pop(1)
+		}
+	}
+}
 
+func main() {
+	log.Println("かんしくん", version)
+
+	flag.Parse()
+
+	settingFile := flag.Arg(0)
+	if settingFile == "" {
+		settingFile = "setting.txt"
+	}
+
+	if !filepath.IsAbs(settingFile) {
+		p, err := filepath.Abs(settingFile)
+		if err != nil {
+			log.Fatalln("filepath.Abs に失敗しました:", err)
+		}
+		settingFile = p
+	}
+	log.Println("設定ファイル:")
+	log.Println("  " + settingFile)
+
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatalln("fsnotify.NewWatcher に失敗しました:", err)
+	}
+	defer watcher.Close()
+
+	err = watcher.Add(settingFile)
+	if err != nil {
+		log.Fatalln("設定ファイルの監視に失敗しました:", err)
+	}
+
+	recentChanged := map[string]int{}
+	recentSent := map[string]time.Time{}
+	timer := time.NewTimer(100 * time.Millisecond)
+	timer.Stop()
+	for {
+		err = watch(watcher, settingFile, recentChanged, recentSent, timer)
+		if err != nil {
+			log.Println("監視処理でエラーが発生しました:", err)
+			log.Println("3秒後にリトライします")
+			time.Sleep(3 * time.Second)
 		}
 	}
 }
