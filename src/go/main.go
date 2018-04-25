@@ -16,6 +16,8 @@ import (
 	lua "github.com/yuin/gopher-lua"
 )
 
+var verbose bool
+
 type file struct {
 	Filepath string
 	ModDate  time.Time
@@ -63,7 +65,13 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 	for {
 		select {
 		case event := <-watcher.Events:
+			if verbose {
+				log.Println("[イベント感知]", event)
+			}
 			if event.Op&(fsnotify.Create|fsnotify.Write) == 0 {
+				if verbose {
+					log.Println("オペレーションが Create / Write ではないので何もしません")
+				}
 				continue
 			}
 			if event.Name == settingFile {
@@ -159,6 +167,7 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 func main() {
 	log.Println("かんしくん", version)
 
+	flag.BoolVar(&verbose, "v", false, "verbose output")
 	flag.Parse()
 
 	settingFile := flag.Arg(0)
