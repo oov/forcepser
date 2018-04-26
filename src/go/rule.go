@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -58,6 +60,15 @@ func makeWildcard(s string) (*regexp.Regexp, error) {
 	return regexp.Compile(string(buf))
 }
 
+func decodeTOML(r io.Reader, v interface{}) (err error) {
+	defer func() {
+		if rcv := recover(); rcv != nil {
+			err = fmt.Errorf("failed to decode TOML: %v", rcv)
+		}
+	}()
+	return toml.NewDecoder(r).Decode(v)
+}
+
 func newSetting(path string) (*setting, error) {
 	f, err := openTextFile(path)
 	if err != nil {
@@ -66,7 +77,7 @@ func newSetting(path string) (*setting, error) {
 	defer f.Close()
 
 	var s setting
-	err = toml.NewDecoder(f).Decode(&s)
+	err = decodeTOML(f, &s)
 	if err != nil {
 		return nil, err
 	}
