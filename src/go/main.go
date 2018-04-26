@@ -133,6 +133,7 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 					if verbose {
 						log.Println("[INFO]", "  つい最近送ったファイルなので、重複送信回避のために無視します")
 					}
+					delete(recentChanged, k)
 					continue
 				}
 				s1, e1 := os.Stat(k)
@@ -141,6 +142,7 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 					if verbose {
 						log.Println("[INFO]", "  *.wav と *.txt が揃ってないので無視します")
 					}
+					delete(recentChanged, k)
 					continue
 				}
 				s1Mod := s1.ModTime()
@@ -150,6 +152,7 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 						if verbose {
 							log.Println("[INFO]", "  *.wav と *.txt の更新日時の差が", setting.Delta, "秒以上なので無視します")
 						}
+						delete(recentChanged, k)
 						continue
 					}
 				}
