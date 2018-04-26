@@ -26,9 +26,10 @@ type rule struct {
 }
 
 type setting struct {
-	BaseDir string
-	Delta   float64
-	Rule    []rule
+	BaseDir   string
+	Delta     float64
+	Freshness float64
+	Rule      []rule
 }
 
 func makeWildcard(s string) (*regexp.Regexp, error) {
@@ -82,6 +83,12 @@ func newSetting(path string) (*setting, error) {
 				return nil, err
 			}
 		}
+	}
+	if s.Delta == 0 {
+		s.Delta = 15
+	}
+	if s.Freshness == 0 {
+		s.Freshness = 5
 	}
 	return &s, nil
 }

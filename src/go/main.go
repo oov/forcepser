@@ -60,30 +60,54 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 		}
 		defer watcher.Remove(dir)
 	}
+	log.Println("  delta:", setting.Delta)
+	log.Println("  freshness:", setting.Freshness)
 
 	var reload bool
 	for {
 		select {
 		case event := <-watcher.Events:
 			if verbose {
-				log.Println("[イベント感知]", event)
+				log.Println("[INFO]", "イベント検出", event)
 			}
 			if event.Op&(fsnotify.Create|fsnotify.Write) == 0 {
 				if verbose {
-					log.Println("オペレーションが Create / Write ではないので何もしません")
+					log.Println("[INFO]", "  オペレーションが Create / Write ではないので何もしません")
 				}
 				continue
 			}
 			if event.Name == settingFile {
+				if verbose {
+					log.Println("[INFO]", "  設定ファイルの再読み込みとして処理します")
+				}
 				reload = true
 				timer.Reset(100 * time.Millisecond)
 				continue
 			}
 			ext := strings.ToLower(filepath.Ext(event.Name))
-			if ext == ".wav" || ext == ".txt" {
-				recentChanged[event.Name[:len(event.Name)-len(ext)]+".wav"] = 0
-				timer.Reset(100 * time.Millisecond)
+			if ext != ".wav" && ext != ".txt" {
+				if verbose {
+					log.Println("[INFO]", "  *.wav / *.txt のどちらでもないので何もしません")
+				}
+				continue
 			}
+			if setting.Freshness > 0 {
+				st, err := os.Stat(event.Name)
+				if err != nil {
+					if verbose {
+						log.Println("[INFO]", "  更新日時の取得に失敗したので何もしません")
+					}
+					continue
+				}
+				if math.Abs(time.Now().Sub(st.ModTime()).Seconds()) > setting.Freshness {
+					if verbose {
+						log.Println("[INFO]", "  更新日時が", setting.Freshness, "秒以上前なので何もしません")
+					}
+					continue
+				}
+			}
+			recentChanged[event.Name[:len(event.Name)-len(ext)]+".wav"] = 0
+			timer.Reset(100 * time.Millisecond)
 		case err := <-watcher.Errors:
 			log.Println("監視中にエラーが発生しました:", err)
 		case <-timer.C:
@@ -102,18 +126,34 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 			}
 			var files []file
 			for k, tryCount := range recentChanged {
+				if verbose {
+					log.Println("[INFO]", k)
+				}
+				if _, found := recentSent[k]; found {
+					if verbose {
+						log.Println("[INFO]", "  つい最近送ったファイルなので、重複送信回避のために無視します")
+					}
+					continue
+				}
 				s1, e1 := os.Stat(k)
 				s2, e2 := os.Stat(k[:len(k)-4] + ".txt")
 				if e1 != nil || e2 != nil {
+					if verbose {
+						log.Println("[INFO]", "  *.wav と *.txt が揃ってないので無視します")
+					}
 					continue
 				}
-				if math.Abs(s1.ModTime().Sub(s2.ModTime()).Seconds()) > setting.Delta {
-					continue
+				s1Mod := s1.ModTime()
+				s2Mod := s2.ModTime()
+				if setting.Delta > 0 {
+					if math.Abs(s1Mod.Sub(s2Mod).Seconds()) > setting.Delta {
+						if verbose {
+							log.Println("[INFO]", "  *.wav と *.txt の更新日時の差が", setting.Delta, "秒以上なので無視します")
+						}
+						continue
+					}
 				}
-				if _, found := recentSent[k]; found {
-					continue
-				}
-				files = append(files, file{k, s1.ModTime(), tryCount})
+				files = append(files, file{k, s1Mod, tryCount})
 			}
 			if len(files) == 0 {
 				continue

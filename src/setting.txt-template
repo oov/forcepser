@@ -4,6 +4,10 @@ basedir = 'C:\your\folder'
 # *.wav と *.txt の更新日時の差が何秒以内なら２つのファイルをセットとして認識するか
 delta = 15.0
 
+# 更新日時が何秒前までのファイルを処理対象にするかを秒で指定
+# 0 だと更新日時が古くても delta 時間内に *.wav と *.txt が作成されていれば処理対象
+freshness = 5.0
+
 # 反応ルールの書き方:
 # https://github.com/oov/forcepser/wiki/%E8%A8%AD%E5%AE%9A%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6
 
