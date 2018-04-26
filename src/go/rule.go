@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	toml "github.com/pelletier/go-toml"
@@ -69,6 +70,49 @@ func decodeTOML(r io.Reader, v interface{}) (err error) {
 	return toml.NewDecoder(r).Decode(v)
 }
 
+func toFloat64(v interface{}) (float64, error) {
+	switch vv := v.(type) {
+	case float64:
+		return vv, nil
+	case float32:
+		return float64(vv), nil
+	case int64:
+		return float64(vv), nil
+	case uint64:
+		return float64(vv), nil
+	case int32:
+		return float64(vv), nil
+	case uint32:
+		return float64(vv), nil
+	case int16:
+		return float64(vv), nil
+	case uint16:
+		return float64(vv), nil
+	case int8:
+		return float64(vv), nil
+	case uint8:
+		return float64(vv), nil
+	case int:
+		return float64(vv), nil
+	case uint:
+		return float64(vv), nil
+	case string:
+		return strconv.ParseFloat(vv, 64)
+	}
+	return 0, errors.Errorf("unexpected value type: %T", v)
+}
+
+func tomlError(err error, tree *toml.Tree, key string) error {
+	if err == nil {
+		return nil
+	}
+	pos := tree.GetPosition(key)
+	if pos.Invalid() {
+		return err
+	}
+	return errors.Wrapf(err, "%s(%v行目)", key, pos.Line)
+}
+
 func newSetting(path string) (*setting, error) {
 	f, err := openTextFile(path)
 	if err != nil {
@@ -77,10 +121,27 @@ func newSetting(path string) (*setting, error) {
 	defer f.Close()
 
 	var s setting
-	err = decodeTOML(f, &s)
+	config, err := toml.LoadReader(f)
 	if err != nil {
 		return nil, err
 	}
+	s.BaseDir, _ = config.GetDefault("basedir", "").(string)
+	s.Delta, err = toFloat64(config.GetDefault("delta", 15.0))
+	if err != nil {
+		return nil, tomlError(err, config, "delta")
+	}
+	s.Freshness, err = toFloat64(config.GetDefault("freshness", 5.0))
+	if err != nil {
+		return nil, tomlError(err, config, "freshness")
+	}
+	var rules struct {
+		Rule []rule
+	}
+	err = config.Unmarshal(&rules)
+	if err != nil {
+		return nil, tomlError(err, config, "rule")
+	}
+	s.Rule = rules.Rule
 	for i := range s.Rule {
 		r := &s.Rule[i]
 		r.Dir = strings.NewReplacer("%BASEDIR%", s.BaseDir).Replace(r.Dir)
@@ -94,12 +155,6 @@ func newSetting(path string) (*setting, error) {
 				return nil, err
 			}
 		}
-	}
-	if s.Delta == 0 {
-		s.Delta = 15
-	}
-	if s.Freshness == 0 {
-		s.Freshness = 5
 	}
 	return &s, nil
 }
