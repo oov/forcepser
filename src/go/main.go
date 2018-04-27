@@ -24,6 +24,71 @@ type file struct {
 	TryCount int
 }
 
+func processFiles(L *lua.LState, files []file, recentChanged map[string]int, recentSent map[string]time.Time) (needRetry bool, err error) {
+	defer func() {
+		for k, ct := range recentChanged {
+			if ct == 9 {
+				log.Println("  たくさん失敗したのでこのファイルは諦めます:", k)
+				delete(recentChanged, k)
+				continue
+			}
+			recentChanged[k] = ct + 1
+			needRetry = true
+		}
+	}()
+	proj, err := readGCMZDropsData()
+	if err != nil {
+		if verbose {
+			log.Println("[INFO] プロジェクト情報取得失敗:", err)
+		}
+		err = errors.Errorf("ごちゃまぜドロップス v0.3 以降がインストールされた AviUtl が検出できませんでした")
+		return
+	}
+	if proj.Width == 0 {
+		err = errors.Errorf("AviUtl で編集中のプロジェクトが見つかりません")
+		return
+	}
+	sort.Slice(files, func(i, j int) bool {
+		return files[i].ModDate.Before(files[j].ModDate)
+	})
+	t := L.NewTable()
+	tc := L.NewTable()
+	for _, f := range files {
+		t.Append(lua.LString(f.Filepath))
+		tc.Append(lua.LNumber(f.TryCount))
+	}
+	pt := L.NewTable()
+	pt.RawSetString("window", lua.LNumber(proj.Window))
+	pt.RawSetString("width", lua.LNumber(proj.Width))
+	pt.RawSetString("height", lua.LNumber(proj.Height))
+	pt.RawSetString("video_rate", lua.LNumber(proj.VideoRate))
+	pt.RawSetString("video_scale", lua.LNumber(proj.VideoScale))
+	pt.RawSetString("audio_rate", lua.LNumber(proj.AudioRate))
+	pt.RawSetString("audio_ch", lua.LNumber(proj.AudioCh))
+	if err = L.CallByParam(lua.P{
+		Fn:      L.GetGlobal("changed"),
+		NRet:    1,
+		Protect: true,
+	}, t, tc, pt); err != nil {
+		return
+	}
+	rv := L.ToTable(-1)
+	if rv == nil {
+		err = errors.Errorf("処理後の戻り値が異常です")
+		return
+	}
+	// remove processed entries
+	now := time.Now()
+	n := rv.MaxN()
+	for i := 1; i <= n; i++ {
+		k := rv.RawGetInt(i).String()
+		recentSent[k] = now
+		delete(recentChanged, k)
+	}
+	L.Pop(1)
+	return
+}
+
 func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[string]int, recentSent map[string]time.Time, timer *time.Timer) error {
 	setting, err := newSetting(settingFile)
 	if err != nil {
@@ -40,7 +105,7 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 	}
 
 	L.SetGlobal("debug_print", L.NewFunction(luaDebugPrint))
-	L.SetGlobal("readproject", L.NewFunction(luaReadProject))
+	L.SetGlobal("debug_print_verbose", L.NewFunction(luaDebugPrintVerbose))
 	L.SetGlobal("sendfile", L.NewFunction(luaSendFile))
 	L.SetGlobal("findrule", L.NewFunction(luaFindRule(setting)))
 	L.SetGlobal("getaudioinfo", L.NewFunction(luaGetAudioInfo))
@@ -71,7 +136,7 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 		select {
 		case event := <-watcher.Events:
 			if verbose {
-				log.Println("[INFO]", "イベント検出", event)
+				log.Println("[INFO]", "イベント検証:", event)
 			}
 			if event.Op&(fsnotify.Create|fsnotify.Write) == 0 {
 				if verbose {
@@ -109,6 +174,9 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 					continue
 				}
 			}
+			if verbose {
+				log.Println("[INFO]", "  送信ファイル候補にします")
+			}
 			recentChanged[event.Name[:len(event.Name)-len(ext)]+".wav"] = 0
 			timer.Reset(100 * time.Millisecond)
 		case err := <-watcher.Errors:
@@ -130,7 +198,7 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 			var files []file
 			for k, tryCount := range recentChanged {
 				if verbose {
-					log.Println("[INFO]", k)
+					log.Println("[INFO]", "送信ファイル候補検証:", k)
 				}
 				if _, found := recentSent[k]; found {
 					if verbose {
@@ -159,53 +227,21 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 						continue
 					}
 				}
+				if verbose {
+					log.Println("[INFO]", "  このファイルはルール検索対象です")
+				}
 				files = append(files, file{k, s1Mod, tryCount})
 			}
 			if len(files) == 0 {
 				continue
 			}
-			sort.Slice(files, func(i, j int) bool { return files[i].ModDate.Before(files[j].ModDate) })
-			t := L.NewTable()
-			tc := L.NewTable()
-			for _, f := range files {
-				t.Append(lua.LString(f.Filepath))
-				tc.Append(lua.LNumber(f.TryCount))
-			}
-			if err := L.CallByParam(lua.P{
-				Fn:      L.GetGlobal("changed"),
-				NRet:    1,
-				Protect: true,
-			}, t, tc); err != nil {
+			needRetry, err := processFiles(L, files, recentChanged, recentSent)
+			if err != nil {
 				log.Println("ファイルの処理中にエラーが発生しました:", err)
 			}
-			rv := L.ToTable(-1)
-			if rv != nil {
-				// remove processed entries
-				n := rv.MaxN()
-				for i := 1; i <= n; i++ {
-					k := rv.RawGetInt(i).String()
-					recentSent[k] = now
-					delete(recentChanged, k)
-				}
-				// increment retry count
-				var found bool
-				for k := range recentChanged {
-					ct := recentChanged[k]
-					if ct == 9 {
-						log.Println("たくさん失敗したのでこのファイルは諦めます:", k)
-						delete(recentChanged, k)
-						continue
-					}
-					recentChanged[k] = ct + 1
-					found = true
-				}
-				if found {
-					timer.Reset(500 * time.Millisecond)
-				}
-			} else {
-				log.Println("処理後の戻り値が異常です")
+			if needRetry {
+				timer.Reset(500 * time.Millisecond)
 			}
-			L.Pop(1)
 		}
 	}
 }

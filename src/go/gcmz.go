@@ -56,21 +56,21 @@ type gcmzDropsData struct {
 	AudioCh    int
 }
 
-func readGCMZDropsData() gcmzDropsData {
+func readGCMZDropsData() (*gcmzDropsData, error) {
 	fileMappingName, err := syscall.UTF16PtrFromString("GCMZDrops")
 	if err != nil {
-		return gcmzDropsData{}
+		return nil, err
 	}
 
 	fmo, err := openFileMapping(syscall.FILE_MAP_READ, 0, fileMappingName)
 	if err != nil {
-		return gcmzDropsData{}
+		return nil, err
 	}
 	defer syscall.CloseHandle(fmo)
 
 	p, err := syscall.MapViewOfFile(fmo, syscall.FILE_MAP_READ, 0, 0, 0)
 	if err != nil {
-		return gcmzDropsData{}
+		return nil, err
 	}
 	defer syscall.UnmapViewOfFile(p)
 
@@ -79,7 +79,7 @@ func readGCMZDropsData() gcmzDropsData {
 	mh.Data = p
 	mh.Len = 28
 	mh.Cap = mh.Len
-	return gcmzDropsData{
+	return &gcmzDropsData{
 		Window:     syscall.Handle(binary.LittleEndian.Uint32(m[0:])),
 		Width:      int(int32(binary.LittleEndian.Uint32(m[4:]))),
 		Height:     int(int32(binary.LittleEndian.Uint32(m[8:]))),
@@ -87,25 +87,7 @@ func readGCMZDropsData() gcmzDropsData {
 		VideoScale: int(int32(binary.LittleEndian.Uint32(m[16:]))),
 		AudioRate:  int(int32(binary.LittleEndian.Uint32(m[20:]))),
 		AudioCh:    int(int32(binary.LittleEndian.Uint32(m[24:]))),
-	}
-}
-
-func luaReadProject(L *lua.LState) int {
-	d := readGCMZDropsData()
-	if d.Width == 0 {
-		return 0
-	}
-
-	t := L.NewTable()
-	t.RawSetString("window", lua.LNumber(d.Window))
-	t.RawSetString("width", lua.LNumber(d.Width))
-	t.RawSetString("height", lua.LNumber(d.Height))
-	t.RawSetString("video_rate", lua.LNumber(d.VideoRate))
-	t.RawSetString("video_scale", lua.LNumber(d.VideoScale))
-	t.RawSetString("audio_rate", lua.LNumber(d.AudioRate))
-	t.RawSetString("audio_ch", lua.LNumber(d.AudioCh))
-	L.Push(t)
-	return 1
+	}, nil
 }
 
 func luaSendFile(L *lua.LState) int {
@@ -116,7 +98,7 @@ func luaSendFile(L *lua.LState) int {
 
 	dir, err := os.Getwd()
 	if err != nil {
-		panic("os.Getwd failed: " + err.Error())
+		L.RaiseError("os.Getwd failed: %v", err)
 	}
 
 	buf := make([]byte, 0, 64)

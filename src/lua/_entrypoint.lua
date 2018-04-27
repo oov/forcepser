@@ -1,31 +1,24 @@
 -- ファイルに変更があったときに呼ばれる関数
-function changed(files, trycount)
-  debug_print("ファイルの更新を検知:")
-  local proj = readproject()
-  if proj == nil then
-    debug_print("  エラー: ごちゃまぜドロップスから AviUtl のプロジェクト情報が取得できませんでした。")
-    return {}
-  end
-
+function changed(files, trycount, proj)
   local success = {}
   for i, file in ipairs(files) do
     if trycount[i] == 0 then
-      debug_print("  " .. file)
+      debug_print(file)
     else
-      debug_print("  " .. file .. " " .. (trycount[i]+1) .. "回目")
+      debug_print(file .. " " .. (trycount[i]+1) .. "回目")
     end
     local rule, text = findrule(file)
     if rule ~= nil then
-      debug_print("    適合するルールが見つかりました: " .. rule.file .. " / 挿入先レイヤー: " .. rule.layer)
+      debug_print_verbose("ルールに一致: " .. rule.file .. " / 挿入先レイヤー: " .. rule.layer)
       local ok, err = pcall(drop, proj, file, text, rule.layer)
       if ok then
         table.insert(success, file)
-        debug_print("      拡張編集へドロップしました。")
+        debug_print("  レイヤー " .. rule.layer .. " へドロップしました")
       else
-        debug_print("      処理中にエラーが発生しました: " .. err)
+        debug_print("  処理中にエラーが発生しました: " .. err)
       end
     else
-      debug_print("    適合するルールが見つかりません。")
+      debug_print("  一致するルールが見つかりませんでした")
       table.insert(success, file)
     end
   end

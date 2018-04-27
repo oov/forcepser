@@ -16,6 +16,13 @@ func luaDebugPrint(L *lua.LState) int {
 	return 0
 }
 
+func luaDebugPrintVerbose(L *lua.LState) int {
+	if verbose {
+		log.Println("[INFO]", L.ToString(1))
+	}
+	return 0
+}
+
 func luaFindRule(ss *setting) lua.LGFunction {
 	return func(L *lua.LState) int {
 		rule, text, err := ss.Find(L.ToString(1))
