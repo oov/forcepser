@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -169,11 +170,24 @@ func (ss *setting) Find(path string) (*rule, string, error) {
 	var u8, sjis *string
 
 	for i := range ss.Rule {
+		if verbose {
+			log.Println("[INFO] ", i, "番目のルールを検証中...")
+		}
 		r := &ss.Rule[i]
 		if dir != r.Dir {
+			if verbose {
+				log.Println("[INFO]   フォルダーのパスが一致しません")
+				log.Println("[INFO]     want:", r.Dir)
+				log.Println("[INFO]     got:", dir)
+			}
 			continue
 		}
 		if !r.fileRE.MatchString(base) {
+			if verbose {
+				log.Println("[INFO]   ファイル名がワイルドカードに一致しません")
+				log.Println("[INFO]     filename:", base)
+				log.Println("[INFO]     regex:", r.fileRE)
+			}
 			continue
 		}
 		if r.textRE != nil {
@@ -184,21 +198,34 @@ func (ss *setting) Find(path string) (*rule, string, error) {
 					u8 = &t
 				}
 				if !r.textRE.MatchString(*u8) {
+					if verbose {
+						log.Println("[INFO]     テキスト内容が正規表現にマッチしませんでした")
+					}
 					continue
 				}
 			case "sjis":
 				if sjis == nil {
 					b, err := japanese.ShiftJIS.NewDecoder().Bytes(textRaw)
 					if err != nil {
-						continue // this file is not written in Shift_JIS.
+						if verbose {
+							log.Println("[INFO]     Shift_JIS から UTF-8 への文字コード変換に失敗しました")
+							log.Println("[INFO]       ", err)
+						}
+						continue
 					}
 					t := string(b)
 					sjis = &t
 				}
 				if !r.textRE.MatchString(*sjis) {
+					if verbose {
+						log.Println("[INFO]     テキスト内容が正規表現にマッチしませんでした")
+					}
 					continue
 				}
 			}
+		}
+		if verbose {
+			log.Println("[INFO]   このルールに適合しました")
 		}
 		switch r.Encoding {
 		case "utf8":

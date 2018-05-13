@@ -247,10 +247,12 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 }
 
 func main() {
-	log.Println("かんしくん", version)
-
 	flag.BoolVar(&verbose, "v", false, "verbose output")
 	flag.Parse()
+	log.Println("かんしくん", version)
+	if verbose {
+		log.Println("  [INFO] 冗長ログモードが有効です")
+	}
 
 	settingFile := flag.Arg(0)
 	if settingFile == "" {
