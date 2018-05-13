@@ -116,6 +116,22 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 		return errors.Wrap(err, "_entrypoint.lua の実行中にエラーが発生しました")
 	}
 
+	for i, r := range setting.Rule {
+		log.Printf("  ルール%d:", i+1)
+		log.Println("    対象フォルダー:", r.Dir)
+		log.Println("    対象ファイル名:", r.File)
+		log.Println("    テキストファイルの文字コード:", r.Encoding)
+		if r.textRE != nil {
+			log.Println("    テキスト判定用の正規表現:", r.Text)
+		}
+		log.Println("    挿入先レイヤー:", r.Layer)
+		if r.Modifier != "" {
+			log.Println("    挿入前のテキスト加工: あり")
+		} else {
+			log.Println("    挿入前のテキスト加工: なし")
+		}
+	}
+
 	log.Println("監視を開始します:")
 	for _, dir := range setting.Dirs() {
 		err = watcher.Add(dir)
