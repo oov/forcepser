@@ -48,6 +48,16 @@ func processFiles(L *lua.LState, files []file, recentChanged map[string]int, rec
 		err = errors.Errorf("AviUtl で編集中のプロジェクトが見つかりません")
 		return
 	}
+	if verbose {
+		log.Println("[INFO] プロジェクト情報:")
+		log.Println("[INFO]   Window:", int(proj.Window))
+		log.Println("[INFO]   Width:", proj.Width)
+		log.Println("[INFO]   Height:", proj.Height)
+		log.Println("[INFO]   VideoRate:", proj.VideoRate)
+		log.Println("[INFO]   VideoScale:", proj.VideoScale)
+		log.Println("[INFO]   AudioRate:", proj.AudioRate)
+		log.Println("[INFO]   AudioCh:", proj.AudioCh)
+	}
 	sort.Slice(files, func(i, j int) bool {
 		return files[i].ModDate.Before(files[j].ModDate)
 	})
