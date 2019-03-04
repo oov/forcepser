@@ -15,6 +15,7 @@ import (
 	toml "github.com/pelletier/go-toml"
 	"github.com/pkg/errors"
 	"golang.org/x/text/encoding/japanese"
+	"golang.org/x/text/encoding/unicode"
 )
 
 type rule struct {
@@ -160,6 +161,12 @@ func newSetting(path string) (*setting, error) {
 	return &s, nil
 }
 
+var (
+	shiftjis = japanese.ShiftJIS
+	utf16le  = unicode.UTF16(unicode.LittleEndian, unicode.UseBOM)
+	utf16be  = unicode.UTF16(unicode.BigEndian, unicode.UseBOM)
+)
+
 func (ss *setting) Find(path string) (*rule, string, error) {
 	dir := filepath.Dir(path)
 	base := filepath.Base(path)
@@ -167,7 +174,7 @@ func (ss *setting) Find(path string) (*rule, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	var u8, sjis *string
+	var u8, sjis, u16le, u16be *string
 
 	for i := range ss.Rule {
 		if verbose {
@@ -205,7 +212,7 @@ func (ss *setting) Find(path string) (*rule, string, error) {
 				}
 			case "sjis":
 				if sjis == nil {
-					b, err := japanese.ShiftJIS.NewDecoder().Bytes(textRaw)
+					b, err := shiftjis.NewDecoder().Bytes(textRaw)
 					if err != nil {
 						if verbose {
 							log.Println("[INFO]     Shift_JIS から UTF-8 への文字コード変換に失敗しました")
@@ -217,6 +224,44 @@ func (ss *setting) Find(path string) (*rule, string, error) {
 					sjis = &t
 				}
 				if !r.textRE.MatchString(*sjis) {
+					if verbose {
+						log.Println("[INFO]     テキスト内容が正規表現にマッチしませんでした")
+					}
+					continue
+				}
+			case "utf16le":
+				if u16le == nil {
+					b, err := utf16le.NewDecoder().Bytes(textRaw)
+					if err != nil {
+						if verbose {
+							log.Println("[INFO]     UTF-16LE から UTF-8 への文字コード変換に失敗しました")
+							log.Println("[INFO]       ", err)
+						}
+						continue
+					}
+					t := string(b)
+					u16le = &t
+				}
+				if !r.textRE.MatchString(*u16le) {
+					if verbose {
+						log.Println("[INFO]     テキスト内容が正規表現にマッチしませんでした")
+					}
+					continue
+				}
+			case "utf16be":
+				if u16be == nil {
+					b, err := utf16be.NewDecoder().Bytes(textRaw)
+					if err != nil {
+						if verbose {
+							log.Println("[INFO]     UTF-16BE から UTF-8 への文字コード変換に失敗しました")
+							log.Println("[INFO]       ", err)
+						}
+						continue
+					}
+					t := string(b)
+					u16be = &t
+				}
+				if !r.textRE.MatchString(*u16be) {
 					if verbose {
 						log.Println("[INFO]     テキスト内容が正規表現にマッチしませんでした")
 					}
@@ -236,7 +281,7 @@ func (ss *setting) Find(path string) (*rule, string, error) {
 			return r, *u8, nil
 		case "sjis":
 			if sjis == nil {
-				b, err := japanese.ShiftJIS.NewDecoder().Bytes(textRaw)
+				b, err := shiftjis.NewDecoder().Bytes(textRaw)
 				if err != nil {
 					return nil, "", errors.Wrap(err, "cannot convert encoding to shift_jis")
 				}
@@ -244,6 +289,26 @@ func (ss *setting) Find(path string) (*rule, string, error) {
 				sjis = &t
 			}
 			return r, *sjis, nil
+		case "utf16le":
+			if u16le == nil {
+				b, err := utf16le.NewDecoder().Bytes(textRaw)
+				if err != nil {
+					return nil, "", errors.Wrap(err, "cannot convert encoding to utf-16le")
+				}
+				t := string(b)
+				u16le = &t
+			}
+			return r, *u16le, nil
+		case "utf16be":
+			if u16be == nil {
+				b, err := utf16be.NewDecoder().Bytes(textRaw)
+				if err != nil {
+					return nil, "", errors.Wrap(err, "cannot convert encoding to utf-16be")
+				}
+				t := string(b)
+				u16be = &t
+			}
+			return r, *u16be, nil
 		default:
 			panic("unexcepted encoding value: " + r.Encoding)
 		}
