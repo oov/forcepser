@@ -5,7 +5,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -116,17 +115,11 @@ func tomlError(err error, tree *toml.Tree, key string) error {
 }
 
 func newSetting(path string) (*setting, error) {
-	f, err := openTextFile(path)
+	config, err := loadTOML(path)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "could not read setting file")
 	}
-	defer f.Close()
-
 	var s setting
-	config, err := toml.LoadReader(f)
-	if err != nil {
-		return nil, err
-	}
 	s.BaseDir, _ = config.GetDefault("basedir", "").(string)
 	s.Delta, err = toFloat64(config.GetDefault("delta", 15.0))
 	if err != nil {
@@ -170,7 +163,7 @@ var (
 func (ss *setting) Find(path string) (*rule, string, error) {
 	dir := filepath.Dir(path)
 	base := filepath.Base(path)
-	textRaw, err := readFile(path[:len(path)-4] + ".txt")
+	textRaw, err := ioutil.ReadFile(path[:len(path)-4] + ".txt")
 	if err != nil {
 		return nil, "", err
 	}
@@ -201,7 +194,7 @@ func (ss *setting) Find(path string) (*rule, string, error) {
 			switch r.Encoding {
 			case "utf8":
 				if u8 == nil {
-					t := string(textRaw)
+					t := string(skipUTF8BOM(textRaw))
 					u8 = &t
 				}
 				if !r.textRE.MatchString(*u8) {
@@ -275,7 +268,7 @@ func (ss *setting) Find(path string) (*rule, string, error) {
 		switch r.Encoding {
 		case "utf8":
 			if u8 == nil {
-				t := string(textRaw)
+				t := string(skipUTF8BOM(textRaw))
 				u8 = &t
 			}
 			return r, *u8, nil
@@ -329,39 +322,17 @@ func (ss *setting) Dirs() []string {
 	return r
 }
 
-func readFile(path string) ([]byte, error) {
-	f, err := openTextFile(path)
+func loadTOML(path string) (*toml.Tree, error) {
+	b, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to openTextFile")
+		return nil, errors.Wrap(err, "failed to read file")
 	}
-	defer f.Close()
-
-	b, err := ioutil.ReadAll(f)
-	if err != nil {
-		return nil, errors.Wrap(err, "ioutil.ReadAll failed")
-	}
-	return b, nil
+	return toml.LoadBytes(skipUTF8BOM(b))
 }
 
-func openTextFile(path string) (*os.File, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, errors.Wrap(err, "os.Open failed")
+func skipUTF8BOM(b []byte) []byte {
+	if len(b) >= 3 && b[0] == 0xef && b[1] == 0xbb && b[2] == 0xbf {
+		return b[3:]
 	}
-
-	// skip BOM
-	var bom [3]byte
-	_, err = f.ReadAt(bom[:], 0)
-	if err != nil {
-		f.Close()
-		return nil, errors.Wrap(err, "cannot read first 3bytes")
-	}
-	if bom[0] == 0xef && bom[1] == 0xbb && bom[2] == 0xbf {
-		_, err = f.Seek(3, os.SEEK_SET)
-		if err != nil {
-			f.Close()
-			return nil, errors.Wrap(err, "failed to seek")
-		}
-	}
-	return f, nil
+	return b
 }
