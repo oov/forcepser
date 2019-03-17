@@ -1,8 +1,14 @@
 package main
 
 import (
+	"fmt"
+	"io"
 	"log"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"time"
 	"unicode/utf16"
 
 	"github.com/oov/audio/wave"
@@ -23,9 +29,43 @@ func luaDebugPrintVerbose(L *lua.LState) int {
 	return 0
 }
 
+func luaExecute(path string, text string) lua.LGFunction {
+	return func(L *lua.LState) int {
+		nargs := L.GetTop()
+		if nargs == 0 {
+			return 0
+		}
+		tempFile := filepath.Join(os.TempDir(), fmt.Sprintf("forcepser%d.wav", time.Now().UnixNano()))
+		defer os.Remove(tempFile)
+		replacer := strings.NewReplacer("%BEFORE%", path, "%AFTER%", tempFile)
+		var cmds []string
+		for i := 1; i < nargs+1; i++ {
+			cmds = append(cmds, replacer.Replace(L.ToString(i)))
+		}
+		if err := exec.Command(cmds[0], cmds[1:]...).Run(); err != nil {
+			L.RaiseError("外部コマンド実行に失敗しました: %v", err)
+		}
+		f, err := os.Open(tempFile)
+		if err == nil {
+			defer f.Close()
+			f2, err := os.Create(path)
+			if err != nil {
+				L.RaiseError("ファイル %q が開けません: %v", path, err)
+			}
+			defer f2.Close()
+			_, err = io.Copy(f2, f)
+			if err != nil {
+				L.RaiseError("ファイルのコピー中にエラーが発生しました: %v", err)
+			}
+		}
+		return 0
+	}
+}
+
 func luaFindRule(ss *setting) lua.LGFunction {
 	return func(L *lua.LState) int {
-		rule, text, err := ss.Find(L.ToString(1))
+		path := L.ToString(1)
+		rule, text, err := ss.Find(path)
 		if err != nil {
 			L.RaiseError("マッチ条件の検索中にエラーが発生しました: %v", err)
 		}
@@ -40,7 +80,11 @@ func luaFindRule(ss *setting) lua.LGFunction {
 			if err = L2.DoString(`re = require("re")`); err != nil {
 				L.RaiseError("modifier スクリプトの初期化中にエラーが発生しました: %v", err)
 			}
+			L2.SetGlobal("debug_print", L.NewFunction(luaDebugPrint))
+			L2.SetGlobal("debug_print_verbose", L.NewFunction(luaDebugPrintVerbose))
+			L2.SetGlobal("execute", L.NewFunction(luaExecute(path, text)))
 			L2.SetGlobal("text", lua.LString(text))
+			L2.SetGlobal("wave", lua.LString(path))
 			if err := L2.DoString(rule.Modifier); err != nil {
 				L.RaiseError("modifier スクリプトの実行中にエラーが発生しました: %v", err)
 			}
