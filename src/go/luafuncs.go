@@ -62,6 +62,28 @@ func luaExecute(path string, text string) lua.LGFunction {
 	}
 }
 
+func copyFile(dst, src string) error {
+	sf, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("コピー元ファイル %q を開けません: %w", src, err)
+	}
+	defer sf.Close()
+	df, err := os.Create(dst)
+	if err != nil {
+		return fmt.Errorf("コピー先ファイル %q を開けません: %w", dst, err)
+	}
+	defer df.Close()
+	_, err = io.Copy(df, sf)
+	if err != nil {
+		return fmt.Errorf("ファイルコピー %q -> %q に失敗しました: %w", src, dst, err)
+	}
+	return nil
+}
+
+func changeExt(path, ext string) string {
+	return path[:len(path)-len(filepath.Ext(path))] + ext
+}
+
 func luaFindRule(ss *setting) lua.LGFunction {
 	return func(L *lua.LState) int {
 		path := L.ToString(1)
@@ -72,7 +94,64 @@ func luaFindRule(ss *setting) lua.LGFunction {
 		if rule == nil {
 			return 0
 		}
-
+		if ss.FileMove == "move" || ss.FileMove == "copy" {
+			proj := L.ToTable(2)
+			if proj == nil {
+				L.RaiseError("findrule でプロジェクトデータが渡されていません")
+			}
+			if lua.LVAsNumber(proj.RawGetString("gcmzapiver")) < 1 {
+				L.RaiseError("`filemove = %q` を使うためには ごちゃまぜドロップス v0.3.13 以降が必要です", ss.FileMove)
+			}
+			projfile := lua.LVAsString(proj.RawGetString("projectfile"))
+			if projfile == "" {
+				L.RaiseError("`filemove = %q` を使うためには AviUtl のプロジェクトファイルを保存してください", ss.FileMove)
+			}
+			newpath := filepath.Join(filepath.Dir(projfile), filepath.Base(path))
+			err = copyFile(newpath, path)
+			if err != nil {
+				L.RaiseError("ファイルのコピーに失敗しました: %v", err)
+			}
+			if verbose {
+				log.Println("[INFO]", "ファイルコピー", path, "->", newpath)
+			}
+			txtpath, newtxtpath := changeExt(path, ".txt"), changeExt(newpath, ".txt")
+			err = copyFile(newtxtpath, txtpath)
+			if err != nil {
+				L.RaiseError("ファイルのコピーに失敗しました: %v", err)
+			}
+			if verbose {
+				log.Println("[INFO]", "ファイルコピー", txtpath, "->", newtxtpath)
+			}
+			switch ss.FileMove {
+			case "copy":
+				log.Println("  filemove の設定に従い wav と txt をプロジェクトファイルと同じ場所にコピーしました")
+			case "move":
+				err = os.Remove(path)
+				if err != nil {
+					L.RaiseError("移動元のファイル %q が削除できません: %v", path, err)
+				}
+				if verbose {
+					log.Println("[INFO]", "ファイル削除:", path)
+				}
+				err = os.Remove(txtpath)
+				if err != nil {
+					L.RaiseError("移動元のファイル %q が削除できません: %v", txtpath, err)
+				}
+				if verbose {
+					log.Println("[INFO]", "ファイル削除:", txtpath)
+				}
+				log.Println("  filemove の設定に従い wav と txt をプロジェクトファイルと同じ場所に移動しました")
+			}
+			path = newpath
+		}
+		if ss.DeleteText {
+			textfile := changeExt(path, ".txt")
+			err = os.Remove(textfile)
+			if err != nil {
+				L.RaiseError("%q が削除できません: %v", textfile, err)
+			}
+			log.Println("  deletetext の設定に従い txt を削除しました")
+		}
 		if rule.Modifier != "" {
 			L2 := lua.NewState()
 			defer L2.Close()
@@ -99,7 +178,8 @@ func luaFindRule(ss *setting) lua.LGFunction {
 		t.RawSetString("layer", lua.LNumber(rule.Layer))
 		L.Push(t)
 		L.Push(lua.LString(text))
-		return 2
+		L.Push(lua.LString(path))
+		return 3
 	}
 }
 

@@ -50,6 +50,9 @@ func processFiles(L *lua.LState, files []file, recentChanged map[string]int, rec
 	}
 	if verbose {
 		log.Println("[INFO] プロジェクト情報:")
+		if proj.GCMZAPIVer >= 1 {
+			log.Println("[INFO]   ProjectFile:", proj.ProjectFile)
+		}
 		log.Println("[INFO]   Window:", int(proj.Window))
 		log.Println("[INFO]   Width:", proj.Width)
 		log.Println("[INFO]   Height:", proj.Height)
@@ -68,6 +71,8 @@ func processFiles(L *lua.LState, files []file, recentChanged map[string]int, rec
 		tc.Append(lua.LNumber(f.TryCount))
 	}
 	pt := L.NewTable()
+	pt.RawSetString("projectfile", lua.LString(proj.ProjectFile))
+	pt.RawSetString("gcmzapiver", lua.LNumber(proj.GCMZAPIVer))
 	pt.RawSetString("window", lua.LNumber(proj.Window))
 	pt.RawSetString("width", lua.LNumber(proj.Width))
 	pt.RawSetString("height", lua.LNumber(proj.Height))
@@ -142,6 +147,11 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 		}
 	}
 
+	log.Println("  filemove:", setting.FileMove)
+	log.Println("  deletetext:", setting.DeleteText)
+	log.Println("  delta:", setting.Delta)
+	log.Println("  freshness:", setting.Freshness)
+
 	log.Println("監視を開始します:")
 	for _, dir := range setting.Dirs() {
 		err = watcher.Add(dir)
@@ -154,8 +164,6 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 		log.Println("  " + dir)
 		defer watcher.Remove(dir)
 	}
-	log.Println("  delta:", setting.Delta)
-	log.Println("  freshness:", setting.Freshness)
 
 	var reload bool
 	for {

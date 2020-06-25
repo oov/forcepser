@@ -30,10 +30,12 @@ type rule struct {
 }
 
 type setting struct {
-	BaseDir   string
-	Delta     float64
-	Freshness float64
-	Rule      []rule
+	BaseDir    string
+	FileMove   string
+	DeleteText bool
+	Delta      float64
+	Freshness  float64
+	Rule       []rule
 }
 
 func makeWildcard(s string) (*regexp.Regexp, error) {
@@ -121,6 +123,14 @@ func newSetting(path string) (*setting, error) {
 	}
 	var s setting
 	s.BaseDir, _ = config.GetDefault("basedir", "").(string)
+	s.FileMove, _ = config.GetDefault("filemove", "off").(string)
+	switch s.FileMove {
+	case "off", "copy", "move":
+		break
+	default:
+		return nil, fmt.Errorf("unexpected filemove value: %q", s.FileMove)
+	}
+	s.DeleteText, _ = config.GetDefault("deletetext", false).(bool)
 	s.Delta, err = toFloat64(config.GetDefault("delta", 15.0))
 	if err != nil {
 		return nil, tomlError(err, config, "delta")

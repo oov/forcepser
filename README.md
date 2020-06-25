@@ -3,7 +3,7 @@
 指定されたフォルダーを監視して、同じ名前の `*.wav` と `*.txt` が追加された時に
 [ごちゃまぜドロップス](https://github.com/oov/aviutl_gcmzdrops) の外部連携 API に投げつけるプログラムです。
 
-動作確認は AviUtl version 1.00 / 拡張編集 version 0.92 / ごちゃまぜドロップス v0.3.8 で行っています。
+動作確認は AviUtl version 1.10 / 拡張編集 version 0.92 / ごちゃまぜドロップス v0.3.13 で行っています。
 
 更新履歴は CHANGELOG を参照してください。
 
@@ -37,7 +37,7 @@ https://github.com/oov/forcepser/releases
 Windows Subsystem for Linux 上で `./build.bash` を行うと必要なファイルがビルドできます。
 なお、リポジトリは GOPATH 上にある前提でコードが書かれています。
 
-ソースコードのコンパイルには Go 1.12.1 windows/amd64 が必要です。
+ソースコードのコンパイルには Go 1.14.4 windows/amd64 が必要です。
 
 ## Credits
 
