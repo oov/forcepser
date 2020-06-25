@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1beta14 2020-06-25
+
+- プログラムと同じフォルダーに `genexo.lua` を作成することで Lua で直接 `*.exo` の中身を生成できる仕組みを追加
+- プログラムと同じフォルダーに `template.exo` を作成することで、カスタマイズされた `*.exo` を作れる仕組みを追加
+-　`[[rule]]` 内で `userdata = 'abcdef'` のように文字列を割り当てておくと `genexo.lua` で参照できる仕組みを追加
+
+`genexo.lua` を作成する場合は概ね以下のような感じで、`*.exo` の内容になるテキストとカーソルを進めるフレーム数を返してください。
+
+```lua
+-- 文字エンコーディングは UTF-8 にしてください
+local P = {}
+function P.gen(proj, file, text, layer, userdata)
+  local length = 30
+  return tosjis("[exedit]\r\nwidth=1280\r\nheight=720\r\nrate=30\r\nscale=1\r\nlength=" .. length .. "..."), length
+end
+return P
+```
+
 ## 0.1beta13 2020-06-25
 
 - AviUtl のプロジェクトファイルと同じ場所に `*.wav` や `*.txt` を移せる `filemove` オプションを追加(ごちゃまぜドロップス v0.3.13 以降が必須)
