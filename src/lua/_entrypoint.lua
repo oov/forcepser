@@ -10,7 +10,7 @@ function changed(files, trycount, proj)
     local rule, text, outfile = findrule(file, proj)
     if rule ~= nil then
       debug_print_verbose("ルールに一致: " .. rule.file .. " / 挿入先レイヤー: " .. rule.layer)
-      local ok, err = pcall(drop, proj, outfile, text, rule.layer)
+      local ok, err = pcall(drop, proj, outfile, text, rule.layer, rule.userdata)
       if ok then
         table.insert(success, file)
         debug_print("  レイヤー " .. rule.layer .. " へドロップしました")
@@ -25,7 +25,7 @@ function changed(files, trycount, proj)
   return success
 end
 
-function drop(proj, file, text, layer)
+local function genexo(proj, file, text, layer, userdata)
   local ai = getaudioinfo(file)
   local length = math.floor((ai.samples * proj.video_rate) / (ai.samplerate * proj.video_scale))
   local exo = {}
@@ -64,7 +64,7 @@ function drop(proj, file, text, layer)
   table.insert(exo, "camera=0")
   table.insert(exo, "[1.0]")
   table.insert(exo, "_name=テキスト")
-  table.insert(exo, "サイズ=1")
+  table.insert(exo, "サイズ=24")
   table.insert(exo, "表示速度=0.0")
   table.insert(exo, "文字毎に個別オブジェクト=0")
   table.insert(exo, "移動座標上に表示する=0")
@@ -89,10 +89,46 @@ function drop(proj, file, text, layer)
   table.insert(exo, "Y=0.0")
   table.insert(exo, "Z=0.0")
   table.insert(exo, "拡大率=100.00")
-  table.insert(exo, "透明度=100.0")
+  table.insert(exo, "透明度=0.0")
   table.insert(exo, "回転=0.00")
   table.insert(exo, "blend=0")
-  exo = tosjis(table.concat(exo, "\r\n"))
+  return tosjis(table.concat(exo, "\r\n")), length
+end
+
+local function genexofromtemplate(proj, file, text, layer, userdata)
+  local f, err = io.open("template.exo", "rb")
+  if f == nil then
+    return nil
+  end
+  local s = fromsjis(f:read("*all"))
+  f:close()
+  local ai = getaudioinfo(file)
+  local length = math.floor((ai.samples * proj.video_rate) / (ai.samplerate * proj.video_scale))
+  s = s:gsub("%%WIDTH%%", tostring(proj.width))
+  s = s:gsub("%%HEIGHT%%", tostring(proj.height))
+  s = s:gsub("%%RATE%%", tostring(proj.video_rate))
+  s = s:gsub("%%SCALE%%", tostring(proj.video_scale))
+  s = s:gsub("%%LENGTH%%", tostring(length))
+  s = s:gsub("%%AUDIO_RATE%%", tostring(proj.audio_rate))
+  s = s:gsub("%%AUDIO_CH%%", tostring(proj.audio_ch))
+  s = s:gsub("%%WAVE%%", file)
+  s = s:gsub("%%TEXT%%", text)
+  s = s:gsub("%%EXOTEXT%%", toexostring(text))
+  return tosjis(s), length
+end
+
+function drop(proj, file, text, layer, userdata)
+  local exo, length = nil, nil
+  local f, err = loadfile("genexo.lua")
+  if f ~= nil then
+    exo, length = f().gen(proj, file, text, layer, userdata)
+  end
+  if exo == nil then
+    exo, length = genexofromtemplate(proj, file, text, layer, userdata)
+  end
+  if exo == nil then
+    exo, length = genexo(proj, file, text, layer, userdata)
+  end
   f, err = io.open("temp.exo", "wb")
   if f == nil then
     error("exo ファイルが作成できません: " .. err)

@@ -7,6 +7,7 @@ sed 's/\r$//' README.md | sed 's/$/\r/' > bin/forcepser.txt
 
 # copy template
 sed 's/\r$//' src/setting.txt-template | sed 's/$/\r/' > bin/setting.txt-template
+sed 's/\r$//' src/template.exo-template | sed 's/$/\r/' > bin/template.exo-template
 
 # copy script
 sed 's/\r$//' src/lua/_entrypoint.lua | sed 's/$/\r/' > bin/_entrypoint.lua

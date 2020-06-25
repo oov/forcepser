@@ -176,6 +176,7 @@ func luaFindRule(ss *setting) lua.LGFunction {
 		t.RawSetString("encoding", lua.LString(rule.Encoding))
 		t.RawSetString("text", lua.LString(rule.Text))
 		t.RawSetString("layer", lua.LNumber(rule.Layer))
+		t.RawSetString("userdata", lua.LString(rule.UserData))
 		L.Push(t)
 		L.Push(lua.LString(text))
 		L.Push(lua.LString(path))
@@ -199,6 +200,15 @@ func luaGetAudioInfo(L *lua.LState) int {
 	t.RawSetString("bits", lua.LNumber(wfe.Format.BitsPerSample))
 	t.RawSetString("samples", lua.LNumber(r.N/int64(wfe.Format.Channels)/int64(wfe.Format.BitsPerSample/8)))
 	L.Push(t)
+	return 1
+}
+
+func luaFromSJIS(L *lua.LState) int {
+	s, err := japanese.ShiftJIS.NewDecoder().String(L.ToString(1))
+	if err != nil {
+		L.RaiseError("文字列を Shift_JIS から変換できません: %v", err)
+	}
+	L.Push(lua.LString(s))
 	return 1
 }
 

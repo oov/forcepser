@@ -24,6 +24,7 @@ type rule struct {
 	Encoding string
 	Layer    int
 	Modifier string
+	UserData string
 
 	fileRE *regexp.Regexp
 	textRE *regexp.Regexp

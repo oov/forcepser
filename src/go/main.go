@@ -125,6 +125,7 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 	L.SetGlobal("findrule", L.NewFunction(luaFindRule(setting)))
 	L.SetGlobal("getaudioinfo", L.NewFunction(luaGetAudioInfo))
 	L.SetGlobal("tosjis", L.NewFunction(luaToSJIS))
+	L.SetGlobal("fromsjis", L.NewFunction(luaFromSJIS))
 	L.SetGlobal("toexostring", L.NewFunction(luaToEXOString))
 
 	if err := L.DoFile("_entrypoint.lua"); err != nil {
@@ -145,6 +146,7 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 		} else {
 			log.Println("    挿入前のテキスト加工: なし")
 		}
+		log.Println("    ユーザーデータ:", r.UserData)
 	}
 
 	log.Println("  filemove:", setting.FileMove)
