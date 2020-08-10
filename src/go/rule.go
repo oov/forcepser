@@ -17,6 +17,14 @@ import (
 	"golang.org/x/text/encoding/unicode"
 )
 
+type asas struct {
+	Exe    string
+	Folder string `default:"%TEMPDIR%"`
+	Filter string `default:"*.wav"`
+	Format string
+	Flags  int `default:"-1"`
+}
+
 type rule struct {
 	Dir      string `default:"%TEMPDIR%"`
 	File     string
@@ -37,6 +45,7 @@ type setting struct {
 	Delta      float64
 	Freshness  float64
 	Rule       []rule
+	Asas       []asas
 }
 
 func makeWildcard(s string) (*regexp.Regexp, error) {
@@ -162,6 +171,31 @@ func newSetting(path string, tempDir string) (*setting, error) {
 			}
 		}
 	}
+
+	var asas struct {
+		Asas []asas
+	}
+	err = config.Unmarshal(&asas)
+	if err != nil {
+		return nil, tomlError(err, config, "asas")
+	}
+	s.Asas = asas.Asas
+	for i := range s.Asas {
+		a := &s.Asas[i]
+		a.Folder = strings.NewReplacer("%BASEDIR%", s.BaseDir, "%TEMPDIR%", tempDir).Replace(a.Folder)
+		if a.Flags == -1 {
+			if a.Format == "" {
+				a.Flags = 3
+			} else {
+				a.Flags = 1
+			}
+		}
+		if a.Format == "" {
+			name := filepath.Base(a.Exe)
+			a.Format = name[:len(name)-len(filepath.Ext(name))] + "_*.wav"
+		}
+	}
+
 	return &s, nil
 }
 

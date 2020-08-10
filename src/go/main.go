@@ -138,6 +138,14 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 		return errors.Wrap(err, "_entrypoint.lua の実行中にエラーが発生しました")
 	}
 
+	for i, a := range setting.Asas {
+		log.Printf("  Asas %d:", i+1)
+		log.Println("    対象EXE:", a.Exe)
+		log.Println("    フィルター:", a.Filter)
+		log.Println("    保存先フォルダー:", a.Folder)
+		log.Println("    フォーマット:", a.Format)
+		log.Println("    フラグ:", a.Flags)
+	}
 	for i, r := range setting.Rule {
 		log.Printf("  ルール%d:", i+1)
 		log.Println("    対象フォルダー:", r.Dir)
