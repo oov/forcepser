@@ -17,14 +17,6 @@ import (
 	"golang.org/x/text/encoding/unicode"
 )
 
-type asas struct {
-	Exe    string
-	Folder string `default:"%TEMPDIR%"`
-	Filter string `default:"*.wav"`
-	Format string
-	Flags  int `default:"-1"`
-}
-
 type rule struct {
 	Dir      string `default:"%TEMPDIR%"`
 	File     string
