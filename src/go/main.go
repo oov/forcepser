@@ -290,6 +290,14 @@ func main() {
 		log.Println("  [INFO] 冗長ログモードが有効です")
 	}
 
+	exePath, err := os.Executable()
+	if err != nil {
+		log.Fatalln("exe ファイルのパスが取得できません", err)
+	}
+	if err := os.Chdir(filepath.Dir(exePath)); err != nil {
+		log.Fatalln("カレントディレクトリの変更に失敗しました:", err)
+	}
+
 	settingFile := flag.Arg(0)
 	if settingFile == "" {
 		settingFile = "setting.txt"
