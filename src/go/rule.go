@@ -150,6 +150,9 @@ func newSetting(path string, tempDir string) (*setting, error) {
 	s.Rule = rules.Rule
 	for i := range s.Rule {
 		r := &s.Rule[i]
+		if r.Dir == "" {
+			r.Dir = "%TEMPDIR%"
+		}
 		r.Dir = strings.NewReplacer("%BASEDIR%", s.BaseDir, "%TEMPDIR%", tempDir).Replace(r.Dir)
 		r.fileRE, err = makeWildcard(r.File)
 		if err != nil {
