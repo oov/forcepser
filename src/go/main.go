@@ -304,15 +304,11 @@ func main() {
 	if err != nil {
 		log.Fatalln("exe ファイルのパスが取得できません", err)
 	}
-	if err := os.Chdir(filepath.Dir(exePath)); err != nil {
-		log.Fatalln("カレントディレクトリの変更に失敗しました:", err)
-	}
 
 	settingFile := flag.Arg(0)
 	if settingFile == "" {
-		settingFile = "setting.txt"
+		settingFile = filepath.Join(filepath.Dir(exePath), "setting.txt")
 	}
-
 	if !filepath.IsAbs(settingFile) {
 		p, err := filepath.Abs(settingFile)
 		if err != nil {
@@ -320,6 +316,11 @@ func main() {
 		}
 		settingFile = p
 	}
+
+	if err := os.Chdir(filepath.Dir(exePath)); err != nil {
+		log.Fatalln("カレントディレクトリの変更に失敗しました:", err)
+	}
+
 	log.Println("設定ファイル:")
 	log.Println("  " + settingFile)
 
