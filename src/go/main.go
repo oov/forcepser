@@ -105,7 +105,13 @@ func processFiles(L *lua.LState, files []file, recentChanged map[string]int, rec
 }
 
 func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[string]int, recentSent map[string]time.Time, timer *time.Timer) error {
-	setting, err := newSetting(settingFile)
+	exePath, err := os.Executable()
+	if err != nil {
+		return errors.Wrap(err, "exe ファイルのパスが取得できません")
+	}
+	tempDir := filepath.Join(filepath.Dir(exePath), "tmp")
+
+	setting, err := newSetting(settingFile, tempDir)
 	if err != nil {
 		return errors.Wrap(err, "設定の読み込みに失敗しました")
 	}
@@ -153,6 +159,10 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 	log.Println("  deletetext:", setting.DeleteText)
 	log.Println("  delta:", setting.Delta)
 	log.Println("  freshness:", setting.Freshness)
+
+	if err = os.Mkdir(tempDir, 0777); err != nil && !os.IsExist(err) {
+		return errors.Wrap(err, "tmp フォルダの作成に失敗しました")
+	}
 
 	log.Println("監視を開始します:")
 	for _, dir := range setting.Dirs() {

@@ -117,7 +117,7 @@ func tomlError(err error, tree *toml.Tree, key string) error {
 	return errors.Wrapf(err, "%s(%v行目)", key, pos.Line)
 }
 
-func newSetting(path string) (*setting, error) {
+func newSetting(path string, tempDir string) (*setting, error) {
 	config, err := loadTOML(path)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not read setting file")
@@ -150,7 +150,7 @@ func newSetting(path string) (*setting, error) {
 	s.Rule = rules.Rule
 	for i := range s.Rule {
 		r := &s.Rule[i]
-		r.Dir = strings.NewReplacer("%BASEDIR%", s.BaseDir).Replace(r.Dir)
+		r.Dir = strings.NewReplacer("%BASEDIR%", s.BaseDir, "%TEMPDIR%", tempDir).Replace(r.Dir)
 		r.fileRE, err = makeWildcard(r.File)
 		if err != nil {
 			return nil, err
