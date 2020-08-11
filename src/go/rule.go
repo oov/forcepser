@@ -125,14 +125,6 @@ func newSetting(path string, tempDir string) (*setting, error) {
 	}
 	var s setting
 	s.BaseDir, _ = config.GetDefault("basedir", "").(string)
-	s.FileMove, _ = config.GetDefault("filemove", "off").(string)
-	switch s.FileMove {
-	case "off", "copy", "move":
-		break
-	default:
-		return nil, fmt.Errorf("unexpected filemove value: %q", s.FileMove)
-	}
-	s.DeleteText, _ = config.GetDefault("deletetext", false).(bool)
 	s.Delta, err = toFloat64(config.GetDefault("delta", 15.0))
 	if err != nil {
 		return nil, tomlError(err, config, "delta")
@@ -187,6 +179,24 @@ func newSetting(path string, tempDir string) (*setting, error) {
 			a.Format = name[:len(name)-len(filepath.Ext(name))] + "_*.wav"
 		}
 	}
+
+	var fileMoveDefault string
+	var deleteTextDefault bool
+	if len(s.Asas) == 0 {
+		fileMoveDefault = "off"
+		deleteTextDefault = false
+	} else {
+		fileMoveDefault = "move"
+		deleteTextDefault = true
+	}
+	s.FileMove, _ = config.GetDefault("filemove", fileMoveDefault).(string)
+	switch s.FileMove {
+	case "off", "copy", "move":
+		break
+	default:
+		return nil, fmt.Errorf("unexpected filemove value: %q", s.FileMove)
+	}
+	s.DeleteText, _ = config.GetDefault("deletetext", deleteTextDefault).(bool)
 
 	return &s, nil
 }
