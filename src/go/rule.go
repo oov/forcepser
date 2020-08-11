@@ -21,7 +21,7 @@ type rule struct {
 	Dir      string `default:"%TEMPDIR%"`
 	File     string
 	Text     string
-	Encoding string
+	Encoding string `default:"sjis"`
 	Layer    int
 	Modifier string
 	UserData string
