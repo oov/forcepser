@@ -20,6 +20,7 @@ var modUser32 = windows.NewLazySystemDLL("user32.dll")
 var procOpenFileMappingW = modKernel32.NewProc("OpenFileMappingW")
 var procGetConsoleWindow = modKernel32.NewProc("GetConsoleWindow")
 var procSendMessageW = modUser32.NewProc("SendMessageW")
+var procSetForegroundWindow = modUser32.NewProc("SetForegroundWindow")
 
 func openFileMapping(desiredAccess uint32, inheritHandle uint32, name *uint16) (handle windows.Handle, err error) {
 	r0, _, e1 := syscall.Syscall(procOpenFileMappingW.Addr(), 3, uintptr(desiredAccess), uintptr(inheritHandle), uintptr(unsafe.Pointer(name)))
@@ -44,6 +45,11 @@ func sendMessage(hwnd windows.Handle, uMsg uint32, wParam uintptr, lParam uintpt
 	r0, _, _ := syscall.Syscall6(procSendMessageW.Addr(), 4, uintptr(hwnd), uintptr(uMsg), uintptr(wParam), uintptr(lParam), 0, 0)
 	lResult = uintptr(r0)
 	return
+}
+
+func setForegroundWindow(hwnd windows.Handle) bool {
+	r0, _, _ := syscall.Syscall(procSetForegroundWindow.Addr(), 1, uintptr(hwnd), 0, 0)
+	return r0 != 0
 }
 
 type gcmzDropsData struct {

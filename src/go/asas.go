@@ -64,7 +64,9 @@ func (a *asas) ConfirmAndRun() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	resp, err := windows.MessageBox(getConsoleWindow(), msg, title, windows.MB_ICONQUESTION|windows.MB_YESNO)
+	hwnd := getConsoleWindow()
+	setForegroundWindow(hwnd)
+	resp, err := windows.MessageBox(hwnd, msg, title, windows.MB_ICONQUESTION|windows.MB_YESNO)
 	if err != nil {
 		return false, err
 	}
