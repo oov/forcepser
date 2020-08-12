@@ -133,6 +133,7 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 	L.SetGlobal("tosjis", L.NewFunction(luaToSJIS))
 	L.SetGlobal("fromsjis", L.NewFunction(luaFromSJIS))
 	L.SetGlobal("toexostring", L.NewFunction(luaToEXOString))
+	L.SetGlobal("tofilename", L.NewFunction(luaToFilename))
 
 	if err := L.DoFile("_entrypoint.lua"); err != nil {
 		return errors.Wrap(err, "_entrypoint.lua の実行中にエラーが発生しました")

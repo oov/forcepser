@@ -159,15 +159,31 @@ func luaFindRule(ss *setting) lua.LGFunction {
 			if err = L2.DoString(`re = require("re")`); err != nil {
 				L.RaiseError("modifier スクリプトの初期化中にエラーが発生しました: %v", err)
 			}
-			L2.SetGlobal("debug_print", L.NewFunction(luaDebugPrint))
-			L2.SetGlobal("debug_print_verbose", L.NewFunction(luaDebugPrintVerbose))
-			L2.SetGlobal("execute", L.NewFunction(luaExecute(path, text)))
+			L2.SetGlobal("debug_print", L2.NewFunction(luaDebugPrint))
+			L2.SetGlobal("debug_print_verbose", L2.NewFunction(luaDebugPrintVerbose))
+			L2.SetGlobal("getaudioinfo", L2.NewFunction(luaGetAudioInfo))
+			L2.SetGlobal("execute", L2.NewFunction(luaExecute(path, text)))
+			L2.SetGlobal("tofilename", L2.NewFunction(luaToFilename))
 			L2.SetGlobal("text", lua.LString(text))
+			filename := filepath.Base(path)
+			L2.SetGlobal("filename", lua.LString(filename))
 			L2.SetGlobal("wave", lua.LString(path))
-			if err := L2.DoString(rule.Modifier); err != nil {
+			if err = L2.DoString(rule.Modifier); err != nil {
 				L.RaiseError("modifier スクリプトの実行中にエラーが発生しました: %v", err)
 			}
 			text = L2.GetGlobal("text").String()
+			if newfilename := L2.GetGlobal("filename").String(); filename != newfilename {
+				newpath := filepath.Join(filepath.Dir(path), newfilename)
+				if err = os.Rename(path, newpath); err != nil {
+					L.RaiseError("ファイル名の変更に失敗しました: %v", err)
+				}
+				if !ss.DeleteText {
+					if err = os.Rename(changeExt(path, ".txt"), changeExt(newpath, ".txt")); err != nil {
+						L.RaiseError("ファイル名の変更に失敗しました: %v", err)
+					}
+				}
+				path = newpath
+			}
 		}
 
 		t := L.NewTable()
@@ -218,6 +234,31 @@ func luaToSJIS(L *lua.LState) int {
 		L.RaiseError("文字列を Shift_JIS に変換できません: %v", err)
 	}
 	L.Push(lua.LString(s))
+	return 1
+}
+
+func luaToFilename(L *lua.LState) int {
+	var nc int
+	var rs []rune
+	n := int(L.ToNumber(2))
+	for _, c := range L.ToString(1) {
+		switch c {
+			case
+			0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+			0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+			0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+			0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
+			0x20, 0x22, 0x2a, 0x2f, 0x3a, 0x3c, 0x3e, 0x3f, 0x7c, 0x7f:
+			continue
+		}
+		nc++
+		if nc == n+1 {
+			rs[len(rs)-1] = '…';
+			break
+		}
+		rs = append(rs, c)
+	}
+	L.Push(lua.LString(string(rs)))
 	return 1
 }
 
