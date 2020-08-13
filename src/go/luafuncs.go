@@ -168,6 +168,7 @@ func luaFindRule(ss *setting) lua.LGFunction {
 			filename := filepath.Base(path)
 			L2.SetGlobal("filename", lua.LString(filename))
 			L2.SetGlobal("wave", lua.LString(path))
+			L2.SetGlobal("userdata", lua.LString(rule.UserData))
 			if err = L2.DoString(rule.Modifier); err != nil {
 				L.RaiseError("modifier スクリプトの実行中にエラーが発生しました: %v", err)
 			}
