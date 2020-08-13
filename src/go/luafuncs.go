@@ -152,6 +152,8 @@ func luaFindRule(ss *setting) lua.LGFunction {
 			}
 			log.Println("  deletetext の設定に従い txt を削除しました")
 		}
+		layer := rule.Layer
+		userdata := rule.UserData
 		if rule.Modifier != "" {
 			L2 := lua.NewState()
 			defer L2.Close()
@@ -164,15 +166,18 @@ func luaFindRule(ss *setting) lua.LGFunction {
 			L2.SetGlobal("getaudioinfo", L2.NewFunction(luaGetAudioInfo))
 			L2.SetGlobal("execute", L2.NewFunction(luaExecute(path, text)))
 			L2.SetGlobal("tofilename", L2.NewFunction(luaToFilename))
+			L2.SetGlobal("layer", lua.LNumber(layer))
 			L2.SetGlobal("text", lua.LString(text))
 			filename := filepath.Base(path)
 			L2.SetGlobal("filename", lua.LString(filename))
 			L2.SetGlobal("wave", lua.LString(path))
-			L2.SetGlobal("userdata", lua.LString(rule.UserData))
+			L2.SetGlobal("userdata", lua.LString(userdata))
 			if err = L2.DoString(rule.Modifier); err != nil {
 				L.RaiseError("modifier スクリプトの実行中にエラーが発生しました: %v", err)
 			}
+			layer = int(lua.LVAsNumber(L2.GetGlobal("layer")))
 			text = L2.GetGlobal("text").String()
+			userdata = L2.GetGlobal("userdata").String()
 			if newfilename := L2.GetGlobal("filename").String(); filename != newfilename {
 				newpath := filepath.Join(filepath.Dir(path), newfilename)
 				if err = os.Rename(path, newpath); err != nil {
@@ -192,8 +197,8 @@ func luaFindRule(ss *setting) lua.LGFunction {
 		t.RawSetString("file", lua.LString(rule.File))
 		t.RawSetString("encoding", lua.LString(rule.Encoding))
 		t.RawSetString("text", lua.LString(rule.Text))
-		t.RawSetString("layer", lua.LNumber(rule.Layer))
-		t.RawSetString("userdata", lua.LString(rule.UserData))
+		t.RawSetString("layer", lua.LNumber(layer))
+		t.RawSetString("userdata", lua.LString(userdata))
 		L.Push(t)
 		L.Push(lua.LString(text))
 		L.Push(lua.LString(path))
