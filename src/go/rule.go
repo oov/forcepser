@@ -19,10 +19,10 @@ import (
 
 type rule struct {
 	Dir      string `default:"%TEMPDIR%"`
-	File     string
+	File     string `default:"*.wav"`
 	Text     string
 	Encoding string `default:"sjis"`
-	Layer    int
+	Layer    int    `default:"1"`
 	Modifier string
 	UserData string
 
