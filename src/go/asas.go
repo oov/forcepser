@@ -6,6 +6,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"reflect"
+	"encoding/binary"
+	"unsafe"
 
 	"github.com/pkg/errors"
 	"golang.org/x/sys/windows"
@@ -19,7 +22,7 @@ type asas struct {
 	Flags  int `default:"-1"`
 }
 
-func (a *asas) getFMOName() (string, error) {
+func (a *asas) getASASName() (string, error) {
 	h := fnv.New32a()
 	if _, err := h.Write([]byte(a.Exe)); err != nil {
 		return "", err
@@ -27,16 +30,29 @@ func (a *asas) getFMOName() (string, error) {
 	return "forcepser" + strconv.FormatUint(uint64(h.Sum32()), 16), nil
 }
 
-func (a *asas) IsRunning() (bool, error) {
-	fmoName, err := a.getFMOName()
+func writeStr(p []byte, s string) error {
+	u16, err := windows.UTF16FromString(s)
 	if err != nil {
-		return false, err
+		return err
 	}
-	mutexName, err := windows.UTF16PtrFromString("ASAS-" + fmoName + "-Mutex")
-	if err != nil {
-		return false, err
+	if len(u16) > windows.MAX_PATH {
+		return errors.New("string is too long")
 	}
+	for idx, ch := range u16 {
+		binary.LittleEndian.PutUint16(p[idx*2:], ch)
+	}
+	return nil
+}
 
+func (a *asas) UpdateRunning() (bool, error) {
+	asasName, err := a.getASASName()
+	if err != nil {
+		return false, err
+	}
+	mutexName, err := windows.UTF16PtrFromString("ASAS-" + asasName + "-Mutex")
+	if err != nil {
+		return false, err
+	}
 	mutex, err := windows.OpenMutex(windows.MUTEX_ALL_ACCESS, false, mutexName)
 	if err != nil {
 		if err == windows.ERROR_FILE_NOT_FOUND {
@@ -44,12 +60,56 @@ func (a *asas) IsRunning() (bool, error) {
 		}
 		return false, err
 	}
-	windows.CloseHandle(mutex)
+	defer windows.CloseHandle(mutex)
+
+	fileMappingName, err := windows.UTF16PtrFromString("ASAS-" + asasName)
+	if err != nil {
+		return false, err
+	}
+	fmo, err := openFileMapping(windows.FILE_MAP_WRITE, 0, fileMappingName)
+	if err != nil {
+		return false, err
+	}
+	defer windows.CloseHandle(fmo)
+
+	if _, err = windows.WaitForSingleObject(mutex, windows.INFINITE); err != nil {
+		return false, err
+	}
+	defer windows.ReleaseMutex(mutex)
+
+	p, err := windows.MapViewOfFile(fmo, windows.FILE_MAP_WRITE, 0, 0, 0)
+	if err != nil {
+		return false, err
+	}
+	defer windows.UnmapViewOfFile(p)
+
+	var m []byte
+	mh := (*reflect.SliceHeader)(unsafe.Pointer(&m))
+	mh.Data = p
+	mh.Len = 8 + windows.MAX_PATH*2*3
+	mh.Cap = mh.Len
+	if binary.LittleEndian.Uint32(m[0:]) != 0 {
+		return false, errors.New("unknown api version")
+	}
+
+	binary.LittleEndian.PutUint32(m[4:], uint32(a.Flags))
+	if err = writeStr(m[8:], a.Filter); err != nil {
+		return false, err
+	}
+	if err = writeStr(m[8+windows.MAX_PATH*2:], a.Folder); err != nil {
+		return false, err
+	}
+	if err = writeStr(m[8+windows.MAX_PATH*2*2:], a.Format); err != nil {
+		return false, err
+	}
+	if err = windows.FlushViewOfFile(p, 0); err != nil {
+		return false, err
+	}
 	return true, nil
 }
 
 func (a *asas) ConfirmAndRun() (bool, error) {
-	r, err := a.IsRunning()
+	r, err := a.UpdateRunning()
 	if err != nil {
 		return false, err
 	}
@@ -83,12 +143,12 @@ func (a *asas) Run() (bool, error) {
 		return false, errors.Wrap(err, "exe ファイルのパスが取得できません")
 	}
 	cmd := exec.Command(filepath.Join(filepath.Dir(exePath), "asas", "asas.exe"), a.Exe)
-	fmoName, err := a.getFMOName()
+	asasName, err := a.getASASName()
 	if err != nil {
 		return false, err
 	}
 	cmd.Env = append(os.Environ(),
-		"ASAS="+fmoName,
+		"ASAS="+asasName,
 		"ASAS_FILTER="+a.Filter,
 		"ASAS_FOLDER="+a.Folder,
 		"ASAS_FORMAT="+a.Format,
