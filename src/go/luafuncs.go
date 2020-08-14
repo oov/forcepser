@@ -172,12 +172,17 @@ func luaFindRule(ss *setting) lua.LGFunction {
 			L2.SetGlobal("filename", lua.LString(filename))
 			L2.SetGlobal("wave", lua.LString(path))
 			L2.SetGlobal("userdata", lua.LString(userdata))
+			L2.SetGlobal("exofile", L.GetGlobal("exofile"))
+			L2.SetGlobal("luafile", L.GetGlobal("luafile"))
 			if err = L2.DoString(rule.Modifier); err != nil {
 				L.RaiseError("modifier スクリプトの実行中にエラーが発生しました: %v", err)
 			}
 			layer = int(lua.LVAsNumber(L2.GetGlobal("layer")))
 			text = L2.GetGlobal("text").String()
 			userdata = L2.GetGlobal("userdata").String()
+			L.SetGlobal("exofile", L2.GetGlobal("exofile"))
+			L.SetGlobal("luafile", L2.GetGlobal("luafile"))
+
 			if newfilename := L2.GetGlobal("filename").String(); filename != newfilename {
 				newpath := filepath.Join(filepath.Dir(path), newfilename)
 				if err = os.Rename(path, newpath); err != nil {
@@ -249,7 +254,7 @@ func luaToFilename(L *lua.LState) int {
 	n := int(L.ToNumber(2))
 	for _, c := range L.ToString(1) {
 		switch c {
-			case
+		case
 			0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
 			0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
 			0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
@@ -259,7 +264,7 @@ func luaToFilename(L *lua.LState) int {
 		}
 		nc++
 		if nc == n+1 {
-			rs[len(rs)-1] = '…';
+			rs[len(rs)-1] = '…'
 			break
 		}
 		rs = append(rs, c)

@@ -36,6 +36,8 @@ type setting struct {
 	DeleteText bool
 	Delta      float64
 	Freshness  float64
+	ExoFile    string
+	LuaFile    string
 	Rule       []rule
 	Asas       []asas
 }
@@ -133,6 +135,9 @@ func newSetting(path string, tempDir string) (*setting, error) {
 	if err != nil {
 		return nil, tomlError(err, config, "freshness")
 	}
+	s.ExoFile, _ = config.GetDefault("exofile", "template.exo").(string)
+	s.LuaFile, _ = config.GetDefault("luafile", "genexo.lua").(string)
+
 	var rules struct {
 		Rule []rule
 	}

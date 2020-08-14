@@ -95,8 +95,8 @@ local function genexo(proj, file, text, layer, userdata)
   return tosjis(table.concat(exo, "\r\n")), length
 end
 
-local function genexofromtemplate(proj, file, text, layer, userdata)
-  local f, err = io.open("template.exo", "rb")
+local function genexofromtemplate(exofile, proj, file, text, layer, userdata)
+  local f, err = io.open(exofile, "rb")
   if f == nil then
     return nil
   end
@@ -119,12 +119,12 @@ end
 
 function drop(proj, file, text, layer, userdata)
   local exo, length = nil, nil
-  local f, err = loadfile("genexo.lua")
+  local f, err = loadfile(luafile)
   if f ~= nil then
     exo, length = f().gen(proj, file, text, layer, userdata)
   end
   if exo == nil then
-    exo, length = genexofromtemplate(proj, file, text, layer, userdata)
+    exo, length = genexofromtemplate(exofile, proj, file, text, layer, userdata)
   end
   if exo == nil then
     exo, length = genexo(proj, file, text, layer, userdata)

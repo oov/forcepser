@@ -171,6 +171,8 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 	log.Println("  deletetext:", setting.DeleteText)
 	log.Println("  delta:", setting.Delta)
 	log.Println("  freshness:", setting.Freshness)
+	log.Println("  exofile:", setting.ExoFile)
+	log.Println("  luafile:", setting.LuaFile)
 
 	if err = os.Mkdir(tempDir, 0777); err != nil && !os.IsExist(err) {
 		return errors.Wrap(err, "tmp フォルダの作成に失敗しました")
@@ -293,6 +295,8 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 			if len(files) == 0 {
 				continue
 			}
+			L.SetGlobal("exofile", lua.LString(setting.ExoFile))
+			L.SetGlobal("luafile", lua.LString(setting.LuaFile))
 			needRetry, err := processFiles(L, files, recentChanged, recentSent)
 			if err != nil {
 				log.Println("ファイルの処理中にエラーが発生しました:", err)
