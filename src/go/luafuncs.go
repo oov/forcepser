@@ -153,7 +153,7 @@ func luaFindRule(ss *setting) lua.LGFunction {
 			log.Println("  deletetext の設定に従い txt を削除しました")
 		}
 		layer := rule.Layer
-		userdata := rule.UserData
+		userdata := lua.LValue(lua.LString(rule.UserData))
 		if rule.Modifier != "" {
 			L2 := lua.NewState()
 			defer L2.Close()
@@ -171,7 +171,7 @@ func luaFindRule(ss *setting) lua.LGFunction {
 			filename := filepath.Base(path)
 			L2.SetGlobal("filename", lua.LString(filename))
 			L2.SetGlobal("wave", lua.LString(path))
-			L2.SetGlobal("userdata", lua.LString(userdata))
+			L2.SetGlobal("userdata", userdata)
 			L2.SetGlobal("exofile", L.GetGlobal("exofile"))
 			L2.SetGlobal("luafile", L.GetGlobal("luafile"))
 			if err = L2.DoString(rule.Modifier); err != nil {
@@ -179,7 +179,7 @@ func luaFindRule(ss *setting) lua.LGFunction {
 			}
 			layer = int(lua.LVAsNumber(L2.GetGlobal("layer")))
 			text = L2.GetGlobal("text").String()
-			userdata = L2.GetGlobal("userdata").String()
+			userdata = L2.GetGlobal("userdata")
 			L.SetGlobal("exofile", L2.GetGlobal("exofile"))
 			L.SetGlobal("luafile", L2.GetGlobal("luafile"))
 
@@ -203,7 +203,7 @@ func luaFindRule(ss *setting) lua.LGFunction {
 		t.RawSetString("encoding", lua.LString(rule.Encoding))
 		t.RawSetString("text", lua.LString(rule.Text))
 		t.RawSetString("layer", lua.LNumber(layer))
-		t.RawSetString("userdata", lua.LString(userdata))
+		t.RawSetString("userdata", userdata)
 		L.Push(t)
 		L.Push(lua.LString(text))
 		L.Push(lua.LString(path))
