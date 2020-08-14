@@ -99,7 +99,7 @@ func readGCMZDropsData() (*gcmzDropsData, error) {
 	var m []byte
 	mh := (*reflect.SliceHeader)(unsafe.Pointer(&m))
 	mh.Data = p
-	mh.Len = 32 + windows.MAX_PATH
+	mh.Len = 32 + windows.MAX_PATH*2
 	mh.Cap = mh.Len
 	r := &gcmzDropsData{
 		Window:     windows.Handle(binary.LittleEndian.Uint32(m[0:])),
