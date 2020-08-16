@@ -23,6 +23,7 @@ type rule struct {
 	Text     string
 	Encoding string `default:"sjis"`
 	Layer    int    `default:"1"`
+	Padding  int    `default:"-1"`
 	Modifier string
 	UserData string
 
@@ -38,6 +39,7 @@ type setting struct {
 	Freshness  float64
 	ExoFile    string
 	LuaFile    string
+	Padding    int
 	Rule       []rule
 	Asas       []asas
 }
@@ -135,6 +137,11 @@ func newSetting(path string, tempDir string) (*setting, error) {
 	if err != nil {
 		return nil, tomlError(err, config, "freshness")
 	}
+	padding, err := toFloat64(config.GetDefault("padding", 0))
+	if err != nil {
+		return nil, tomlError(err, config, "padding")
+	}
+	s.Padding = int(padding)
 	s.ExoFile, _ = config.GetDefault("exofile", "template.exo").(string)
 	s.LuaFile, _ = config.GetDefault("luafile", "genexo.lua").(string)
 
@@ -158,6 +165,9 @@ func newSetting(path string, tempDir string) (*setting, error) {
 			if err != nil {
 				return nil, err
 			}
+		}
+		if r.Padding == -1 {
+			r.Padding = s.Padding
 		}
 	}
 

@@ -165,6 +165,7 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 			log.Println("    挿入前のテキスト加工: なし")
 		}
 		log.Println("    ユーザーデータ:", r.UserData)
+		log.Println("    パディング:", r.Padding)
 	}
 
 	log.Println("  filemove:", setting.FileMove)
@@ -173,6 +174,7 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 	log.Println("  freshness:", setting.Freshness)
 	log.Println("  exofile:", setting.ExoFile)
 	log.Println("  luafile:", setting.LuaFile)
+	log.Println("  padding:", setting.Padding)
 
 	if err = os.Mkdir(tempDir, 0777); err != nil && !os.IsExist(err) {
 		return errors.Wrap(err, "tmp フォルダの作成に失敗しました")

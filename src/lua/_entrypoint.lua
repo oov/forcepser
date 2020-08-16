@@ -10,7 +10,7 @@ function changed(files, trycount, proj)
     local rule, text, outfile = findrule(file, proj)
     if rule ~= nil then
       debug_print_verbose("ルールに一致: " .. rule.file .. " / 挿入先レイヤー: " .. rule.layer)
-      local ok, err = pcall(drop, proj, outfile, text, rule.layer, rule.userdata)
+      local ok, err = pcall(drop, proj, outfile, text, rule)
       if ok then
         table.insert(success, file)
         debug_print("  レイヤー " .. rule.layer .. " へドロップしました")
@@ -25,9 +25,10 @@ function changed(files, trycount, proj)
   return success
 end
 
-local function genexo(proj, file, text, layer, userdata)
+local function genexo(proj, file, text, rule)
   local ai = getaudioinfo(file)
   local length = math.floor((ai.samples * proj.video_rate) / (ai.samplerate * proj.video_scale))
+  local padding = math.floor((rule.padding * proj.video_rate) / (1000 * proj.video_scale))
   local exo = {}
   table.insert(exo, "[exedit]")
   table.insert(exo, "width=" .. proj.width)
@@ -51,6 +52,7 @@ local function genexo(proj, file, text, layer, userdata)
   table.insert(exo, "ループ再生=0")
   table.insert(exo, "動画ファイルと連携=0")
   table.insert(exo, "file=" .. file)
+  table.insert(exo, "__json=" .. toexostring('{"padding":'..padding..'}'))
   table.insert(exo, "[0.1]")
   table.insert(exo, "_name=標準再生")
   table.insert(exo, "音量=100.0")
@@ -92,10 +94,10 @@ local function genexo(proj, file, text, layer, userdata)
   table.insert(exo, "透明度=0.0")
   table.insert(exo, "回転=0.00")
   table.insert(exo, "blend=0")
-  return tosjis(table.concat(exo, "\r\n")), length
+  return tosjis(table.concat(exo, "\r\n")), length+padding
 end
 
-local function genexofromtemplate(exofile, proj, file, text, layer, userdata)
+local function genexofromtemplate(exofile, proj, file, text, rule)
   local f, err = io.open(exofile, "rb")
   if f == nil then
     return nil
@@ -104,30 +106,38 @@ local function genexofromtemplate(exofile, proj, file, text, layer, userdata)
   f:close()
   local ai = getaudioinfo(file)
   local length = math.floor((ai.samples * proj.video_rate) / (ai.samplerate * proj.video_scale))
+  local padding = math.floor((rule.padding * proj.video_rate) / (1000 * proj.video_scale))
   s = s:gsub("%%WIDTH%%", tostring(proj.width))
   s = s:gsub("%%HEIGHT%%", tostring(proj.height))
   s = s:gsub("%%RATE%%", tostring(proj.video_rate))
   s = s:gsub("%%SCALE%%", tostring(proj.video_scale))
   s = s:gsub("%%LENGTH%%", tostring(length))
+  s = s:gsub("%%PADDING%%", tostring(padding))
   s = s:gsub("%%AUDIO_RATE%%", tostring(proj.audio_rate))
   s = s:gsub("%%AUDIO_CH%%", tostring(proj.audio_ch))
   s = s:gsub("%%WAVE%%", file)
   s = s:gsub("%%TEXT%%", text)
   s = s:gsub("%%EXOTEXT%%", toexostring(text))
-  return tosjis(s), length
+  s = s:gsub("%%EXOJSON%%", toexostring('{"padding":'..padding..'}'))
+  return tosjis(s), length+padding
 end
 
-function drop(proj, file, text, layer, userdata)
+function drop(proj, file, text, rule)
   local exo, length = nil, nil
   local f, err = loadfile(luafile)
   if f ~= nil then
-    exo, length = f().gen(proj, file, text, layer, userdata)
+    local m = f()
+    if m.gen2 ~= nil then
+      exo, length = m.gen2(proj, file, text, rule)
+    elseif m.gen ~= nil then
+      exo, length = m.gen(proj, file, text, rule.layer, rule.userdata)
+    end
   end
   if exo == nil then
-    exo, length = genexofromtemplate(exofile, proj, file, text, layer, userdata)
+    exo, length = genexofromtemplate(exofile, proj, file, text, rule)
   end
   if exo == nil then
-    exo, length = genexo(proj, file, text, layer, userdata)
+    exo, length = genexo(proj, file, text, rule)
   end
   f, err = io.open("temp.exo", "wb")
   if f == nil then
@@ -135,5 +145,5 @@ function drop(proj, file, text, layer, userdata)
   end
   f:write(exo)
   f:close()
-  sendfile(proj.window, layer, length, {"temp.exo"})
+  sendfile(proj.window, rule.layer, length, {"temp.exo"})
 end
