@@ -147,8 +147,12 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 		log.Println("    保存先フォルダー:", a.Folder)
 		log.Println("    フォーマット:", a.Format)
 		log.Println("    フラグ:", a.Flags)
-		if _, err := a.ConfirmAndRun(updateOnly); err != nil {
-			return errors.Wrap(err, "プログラムの起動に失敗しました")
+		if a.Exists() {
+			if _, err := a.ConfirmAndRun(updateOnly); err != nil {
+				return errors.Wrap(err, "プログラムの起動に失敗しました")
+			}
+		} else {
+			log.Println("    [警告] 対象EXE が見つからないため設定を無視します")
 		}
 	}
 	for i, r := range setting.Rule {

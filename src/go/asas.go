@@ -108,6 +108,11 @@ func (a *asas) UpdateRunning() (bool, error) {
 	return true, nil
 }
 
+func (a *asas) Exists() bool {
+	_, err := os.Stat(a.Exe)
+	return err == nil
+}
+
 func (a *asas) ConfirmAndRun(updateOnly bool) (bool, error) {
 	r, err := a.UpdateRunning()
 	if err != nil {
