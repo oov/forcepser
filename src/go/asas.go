@@ -1,13 +1,13 @@
 package main
 
 import (
+	"encoding/binary"
 	"hash/fnv"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"reflect"
-	"encoding/binary"
+	"strconv"
 	"unsafe"
 
 	"github.com/pkg/errors"
@@ -108,12 +108,12 @@ func (a *asas) UpdateRunning() (bool, error) {
 	return true, nil
 }
 
-func (a *asas) ConfirmAndRun() (bool, error) {
+func (a *asas) ConfirmAndRun(updateOnly bool) (bool, error) {
 	r, err := a.UpdateRunning()
 	if err != nil {
 		return false, err
 	}
-	if r {
+	if r || updateOnly {
 		return false, nil
 	}
 	msg, err := windows.UTF16PtrFromString("実行中の " + filepath.Base(a.Exe) + " が見つかりませんでした。\n起動しますか？")

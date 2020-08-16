@@ -104,7 +104,7 @@ func processFiles(L *lua.LState, files []file, recentChanged map[string]int, rec
 	return
 }
 
-func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[string]int, recentSent map[string]time.Time, timer *time.Timer) error {
+func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[string]int, recentSent map[string]time.Time, timer *time.Timer, loop int) error {
 	exePath, err := os.Executable()
 	if err != nil {
 		return errors.Wrap(err, "exe ファイルのパスが取得できません")
@@ -139,6 +139,7 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 		return errors.Wrap(err, "_entrypoint.lua の実行中にエラーが発生しました")
 	}
 
+	updateOnly := loop > 0
 	for i, a := range setting.Asas {
 		log.Printf("  Asas %d:", i+1)
 		log.Println("    対象EXE:", a.Exe)
@@ -146,7 +147,7 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 		log.Println("    保存先フォルダー:", a.Folder)
 		log.Println("    フォーマット:", a.Format)
 		log.Println("    フラグ:", a.Flags)
-		if _, err := a.ConfirmAndRun(); err != nil {
+		if _, err := a.ConfirmAndRun(updateOnly); err != nil {
 			return errors.Wrap(err, "プログラムの起動に失敗しました")
 		}
 	}
@@ -357,8 +358,8 @@ func main() {
 	recentSent := map[string]time.Time{}
 	timer := time.NewTimer(100 * time.Millisecond)
 	timer.Stop()
-	for {
-		err = watch(watcher, settingFile, recentChanged, recentSent, timer)
+	for i := 0; ; i++ {
+		err = watch(watcher, settingFile, recentChanged, recentSent, timer, i)
 		if err != nil {
 			log.Println(err)
 			log.Println("3秒後にリトライします")
