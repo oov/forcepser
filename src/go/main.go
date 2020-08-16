@@ -139,6 +139,15 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 		return errors.Wrap(err, "_entrypoint.lua の実行中にエラーが発生しました")
 	}
 
+	log.Println("  filemove:", setting.FileMove)
+	log.Println("  deletetext:", setting.DeleteText)
+	log.Println("  delta:", setting.Delta)
+	log.Println("  freshness:", setting.Freshness)
+	log.Println("  exofile:", setting.ExoFile)
+	log.Println("  luafile:", setting.LuaFile)
+	log.Println("  padding:", setting.Padding)
+	log.Println()
+
 	updateOnly := loop > 0
 	for i, a := range setting.Asas {
 		log.Printf("  Asas %d:", i+1)
@@ -155,6 +164,7 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 			log.Println("    [警告] 対象EXE が見つからないため設定を無視します")
 		}
 	}
+	log.Println()
 	for i, r := range setting.Rule {
 		log.Printf("  ルール%d:", i+1)
 		log.Println("    対象フォルダー:", r.Dir)
@@ -172,14 +182,7 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 		log.Println("    ユーザーデータ:", r.UserData)
 		log.Println("    パディング:", r.Padding)
 	}
-
-	log.Println("  filemove:", setting.FileMove)
-	log.Println("  deletetext:", setting.DeleteText)
-	log.Println("  delta:", setting.Delta)
-	log.Println("  freshness:", setting.Freshness)
-	log.Println("  exofile:", setting.ExoFile)
-	log.Println("  luafile:", setting.LuaFile)
-	log.Println("  padding:", setting.Padding)
+	log.Println()
 
 	if err = os.Mkdir(tempDir, 0777); err != nil && !os.IsExist(err) {
 		return errors.Wrap(err, "tmp フォルダの作成に失敗しました")
