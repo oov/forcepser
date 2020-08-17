@@ -195,9 +195,6 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 	for _, dir := range setting.Dirs() {
 		err = watcher.Add(dir)
 		if err != nil {
-			if _, err2 := os.Stat(dir); os.IsNotExist(err2) {
-				return errors.Errorf("フォルダーが見つかりません: %v", dir)
-			}
 			return errors.Wrapf(err, "フォルダーが監視できません: %v", dir)
 		}
 		log.Println("  " + dir)
