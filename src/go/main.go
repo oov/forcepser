@@ -175,9 +175,9 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 		}
 		log.Println("    挿入先レイヤー:", r.Layer)
 		if r.Modifier != "" {
-			log.Println("    挿入前のテキスト加工: あり")
+			log.Println("    modifier: あり")
 		} else {
-			log.Println("    挿入前のテキスト加工: なし")
+			log.Println("    modifier: なし")
 		}
 		log.Println("    ユーザーデータ:", r.UserData)
 		log.Println("    パディング:", r.Padding)
@@ -192,13 +192,18 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 	}
 
 	log.Println("監視を開始します:")
+	watching := 0
 	for _, dir := range setting.Dirs() {
 		err = watcher.Add(dir)
 		if err != nil {
 			return errors.Wrapf(err, "フォルダーが監視できません: %v", dir)
 		}
 		log.Println("  " + dir)
+		watching++
 		defer watcher.Remove(dir)
+	}
+	if watching == 0 {
+		log.Println("  [警告] 監視対象のフォルダーがひとつもありません")
 	}
 
 	var reload bool
