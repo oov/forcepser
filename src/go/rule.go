@@ -201,23 +201,14 @@ func newSetting(path string, tempDir string) (*setting, error) {
 		}
 	}
 
-	var fileMoveDefault string
-	var deleteTextDefault bool
-	if len(s.Asas) == 0 {
-		fileMoveDefault = "off"
-		deleteTextDefault = false
-	} else {
-		fileMoveDefault = "move"
-		deleteTextDefault = true
-	}
-	s.FileMove, _ = config.GetDefault("filemove", fileMoveDefault).(string)
+	s.FileMove, _ = config.GetDefault("filemove", "off").(string)
 	switch s.FileMove {
 	case "off", "copy", "move":
 		break
 	default:
 		return nil, fmt.Errorf("unexpected filemove value: %q", s.FileMove)
 	}
-	s.DeleteText, _ = config.GetDefault("deletetext", deleteTextDefault).(bool)
+	s.DeleteText, _ = config.GetDefault("deletetext", false).(bool)
 
 	return &s, nil
 }
