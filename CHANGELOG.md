@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.1beta15 2020-08-17
+
+- カレントディレクトリが exe ファイルのフォルダーではないときに上手く動かなかった問題を修正
+- グローバルセクションに `exofile=template.exo` と `luafile=genexo.lua` の設定を追加
+  - 絶対パスで書けば外のフォルダーにおいたテンプレートファイルでも読み込めるはず（未テスト）
+- グローバルセクションと `[[rule]]` セクションに `padding=0` の設定を追加
+  - `padding` の設定を PSDToolKit で使うためには v0.2beta47 以降のバージョンが必要です
+  - `*.exo` を生成する際は `__json=~~` というデータを埋め込まないと PSDToolKit が padding が認識できません
+- `[[rule]]` セクションの `dir` が見つからなくても警告した上で処理を続行するように変更
+- `[[rule]]` の `modifier` で `layer` `filename` `userdata` `exofile` `luafile` を動的に変更可能にした
+  - `modifier` から代入すれば `userdata` に任意の型を格納できるようになった
+- exe ファイルがあるフォルダーに `tmp` というフォルダーを自動生成するようにした
+  - `[[rule]]` の `dir` に `%TEMPDIR%` を含むと `tmp` フォルダーに置換されるようにした
+- `[[asas]]` で asas 用の定義を記述できるようにし、かんしくん起動時に連動起動できる機構を追加
+- 設定ファイルの記述を簡略化するための変更
+  - `[[rule]]` の `dir` のデフォルト値を `%TEMPDIR%` にした
+  - `[[rule]]` の `encoding` のデフォルト値を `sjis` にした
+- `genexo.lua` で新しく追加された設定値にアクセスできるように `gen` に代わり `gen2` を使えるようにした
+  - `gen` を使ったスクリプトも依然として動作しますが、`padding` のような新しい設定値へのアクセス手段がありません。
+
+`genexo.lua` の新しい仕様は以下のようなものです。
+
+```lua
+-- 文字エンコーディングは UTF-8 にしてください
+local P = {}
+-- 関数名が gen2 になり、引数が変わりました
+-- 以前の layer と userdata は rule.layer, rule.userdata でアクセスでき、そのほか rule.padding などもあります
+function P.gen2(proj, file, text, rule)
+  local length = 30
+  return tosjis("[exedit]\r\nwidth=1280\r\nheight=720\r\nrate=30\r\nscale=1\r\nlength=" .. length .. "..."), length
+end
+return P
+```
+
 ## 0.1beta14 2020-06-25
 
 - プログラムと同じフォルダーに `genexo.lua` を作成することで Lua で直接 `*.exo` の中身を生成できる仕組みを追加
