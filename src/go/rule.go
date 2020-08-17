@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -29,6 +30,11 @@ type rule struct {
 
 	fileRE *regexp.Regexp
 	textRE *regexp.Regexp
+}
+
+func (r *rule) ExistsDir() bool {
+	_, err := os.Stat(r.Dir)
+	return err == nil
 }
 
 type setting struct {
@@ -374,7 +380,9 @@ func (ss *setting) Find(path string) (*rule, string, error) {
 func (ss *setting) Dirs() []string {
 	dirs := map[string]struct{}{}
 	for i := range ss.Rule {
-		dirs[ss.Rule[i].Dir] = struct{}{}
+		if ss.Rule[i].ExistsDir() {
+			dirs[ss.Rule[i].Dir] = struct{}{}
+		}
 	}
 	r := make([]string, 0, len(dirs))
 	for k := range dirs {

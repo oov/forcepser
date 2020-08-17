@@ -181,6 +181,9 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 		}
 		log.Println("    ユーザーデータ:", r.UserData)
 		log.Println("    パディング:", r.Padding)
+		if !r.ExistsDir() {
+			log.Println("    [警告] 対象フォルダー が見つからないため設定を無視します")
+		}
 	}
 	log.Println()
 
