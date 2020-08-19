@@ -1,15 +1,12 @@
 package main
 
 import (
-	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 
 	toml "github.com/pelletier/go-toml"
@@ -19,14 +16,19 @@ import (
 )
 
 type rule struct {
-	Dir      string `default:"%TEMPDIR%"`
-	File     string `default:"*.wav"`
-	Text     string
-	Encoding string `default:"sjis"`
-	Layer    int    `default:"1"`
-	Padding  int    `default:"-1"`
+	Dir      string
+	File     string
+	Encoding string
+	Layer    int
 	Modifier string
+	Text     string
 	UserData string
+
+	ExoFile    string
+	LuaFile    string
+	FileMove   string
+	DeleteText bool
+	Padding    int
 
 	fileRE *regexp.Regexp
 	textRE *regexp.Regexp
@@ -76,139 +78,94 @@ func makeWildcard(s string) (*regexp.Regexp, error) {
 	return regexp.Compile(string(buf))
 }
 
-func decodeTOML(r io.Reader, v interface{}) (err error) {
-	defer func() {
-		if rcv := recover(); rcv != nil {
-			err = fmt.Errorf("failed to decode TOML: %v", rcv)
-		}
-	}()
-	return toml.NewDecoder(r).Decode(v)
-}
-
-func toFloat64(v interface{}) (float64, error) {
-	switch vv := v.(type) {
-	case float64:
-		return vv, nil
-	case float32:
-		return float64(vv), nil
-	case int64:
-		return float64(vv), nil
-	case uint64:
-		return float64(vv), nil
-	case int32:
-		return float64(vv), nil
-	case uint32:
-		return float64(vv), nil
-	case int16:
-		return float64(vv), nil
-	case uint16:
-		return float64(vv), nil
-	case int8:
-		return float64(vv), nil
-	case uint8:
-		return float64(vv), nil
-	case int:
-		return float64(vv), nil
-	case uint:
-		return float64(vv), nil
-	case string:
-		return strconv.ParseFloat(vv, 64)
-	}
-	return 0, errors.Errorf("unexpected value type: %T", v)
-}
-
-func tomlError(err error, tree *toml.Tree, key string) error {
-	if err == nil {
-		return nil
-	}
-	pos := tree.GetPosition(key)
-	if pos.Invalid() {
-		return err
-	}
-	return errors.Wrapf(err, "%s(%v行目)", key, pos.Line)
-}
-
 func newSetting(path string, tempDir string) (*setting, error) {
 	config, err := loadTOML(path)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not read setting file")
 	}
 	var s setting
-	s.BaseDir, _ = config.GetDefault("basedir", "").(string)
-	s.Delta, err = toFloat64(config.GetDefault("delta", 15.0))
-	if err != nil {
-		return nil, tomlError(err, config, "delta")
-	}
-	s.Freshness, err = toFloat64(config.GetDefault("freshness", 5.0))
-	if err != nil {
-		return nil, tomlError(err, config, "freshness")
-	}
-	padding, err := toFloat64(config.GetDefault("padding", 0))
-	if err != nil {
-		return nil, tomlError(err, config, "padding")
-	}
-	s.Padding = int(padding)
-	s.ExoFile, _ = config.GetDefault("exofile", "template.exo").(string)
-	s.LuaFile, _ = config.GetDefault("luafile", "genexo.lua").(string)
+	s.BaseDir = getString("basedir", config, "")
 
-	var rules struct {
-		Rule []rule
+	s.Delta = getFloat64("delta", config, 15.0)
+	s.Freshness = getFloat64("freshness", config, 5.0)
+	s.Padding = getInt("padding", config, 0)
+	s.ExoFile = getString("exofile", config, "template.exo")
+	s.LuaFile = getString("luafile", config, "genexo.lua")
+
+	s.FileMove = getString("filemove", config, "off")
+	switch s.FileMove {
+	case "off", "copy", "move":
+		break
+	default:
+		s.FileMove = "off"
 	}
-	err = config.Unmarshal(&rules)
-	if err != nil {
-		return nil, tomlError(err, config, "rule")
-	}
-	s.Rule = rules.Rule
-	for i := range s.Rule {
-		r := &s.Rule[i]
-		r.Dir = strings.NewReplacer("%BASEDIR%", s.BaseDir, "%TEMPDIR%", tempDir).Replace(r.Dir)
+	s.DeleteText = getBool("deletetext", config, false)
+
+	dirReplacer := strings.NewReplacer("%BASEDIR%", s.BaseDir, "%TEMPDIR%", tempDir)
+
+	for _, tr := range getSubTreeArray("rule", config) {
+		var r rule
+		r.Dir = getString("dir", tr, "%TEMPDIR%")
+		r.Dir = dirReplacer.Replace(r.Dir)
+
+		r.Encoding = getString("encoding", tr, "sjis")
+
+		r.Layer = getInt("layer", tr, 1)
+
+		r.File = getString("file", tr, "*.wav")
 		r.fileRE, err = makeWildcard(r.File)
 		if err != nil {
 			return nil, err
 		}
+
+		r.Modifier = getString("modifier", tr, "")
+
+		r.Text = getString("text", tr, "")
 		if r.Text != "" {
 			r.textRE, err = regexp.Compile(r.Text)
 			if err != nil {
 				return nil, err
 			}
 		}
-		if r.Padding == -1 {
-			r.Padding = s.Padding
+
+		r.UserData = getString("userdata", tr, "")
+
+		r.DeleteText = getBool("deletetext", tr, s.DeleteText)
+		r.ExoFile = getString("exofile", tr, s.ExoFile)
+		r.FileMove = getString("filemove", tr, s.FileMove)
+		switch s.FileMove {
+		case "off", "copy", "move":
+			break
+		default:
+			r.FileMove = s.FileMove
 		}
+		r.LuaFile = getString("luafile", tr, s.LuaFile)
+		r.Padding = getInt("padding", tr, s.Padding)
+
+		s.Rule = append(s.Rule, r)
 	}
 
-	var asas struct {
-		Asas []asas
-	}
-	err = config.Unmarshal(&asas)
-	if err != nil {
-		return nil, tomlError(err, config, "asas")
-	}
-	s.Asas = asas.Asas
-	for i := range s.Asas {
-		a := &s.Asas[i]
-		a.Folder = strings.NewReplacer("%BASEDIR%", s.BaseDir, "%TEMPDIR%", tempDir).Replace(a.Folder)
-		if a.Flags == -1 {
-			if a.Format == "" {
-				a.Flags = 3
-			} else {
-				a.Flags = 1
-			}
-		}
-		if a.Format == "" {
-			name := filepath.Base(a.Exe)
-			a.Format = name[:len(name)-len(filepath.Ext(name))] + "_*.wav"
-		}
-	}
+	for _, tr := range getSubTreeArray("asas", config) {
+		var a asas
+		a.Exe = getString("exe", tr, "")
 
-	s.FileMove, _ = config.GetDefault("filemove", "off").(string)
-	switch s.FileMove {
-	case "off", "copy", "move":
-		break
-	default:
-		return nil, fmt.Errorf("unexpected filemove value: %q", s.FileMove)
+		flagDef := 1
+		if f := tr.Get("format"); f == nil {
+			flagDef = 3
+		}
+		a.Flags = getInt("flags", tr, flagDef)
+
+		a.Filter = getString("filter", tr, "*.wav")
+
+		a.Folder = getString("folder", tr, "%TEMPDIR%")
+		a.Folder = dirReplacer.Replace(a.Folder)
+
+		name := filepath.Base(a.Exe)
+		formatDef := name[:len(name)-len(filepath.Ext(name))] + "_*.wav"
+		a.Format = getString("format", tr, formatDef)
+
+		s.Asas = append(s.Asas, a)
 	}
-	s.DeleteText, _ = config.GetDefault("deletetext", false).(bool)
 
 	return &s, nil
 }

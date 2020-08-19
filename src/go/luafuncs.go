@@ -94,7 +94,7 @@ func luaFindRule(ss *setting) lua.LGFunction {
 		if rule == nil {
 			return 0
 		}
-		if ss.FileMove == "move" || ss.FileMove == "copy" {
+		if rule.FileMove == "move" || rule.FileMove == "copy" {
 			proj := L.ToTable(2)
 			if proj == nil {
 				L.RaiseError("findrule でプロジェクトデータが渡されていません")
@@ -144,7 +144,7 @@ func luaFindRule(ss *setting) lua.LGFunction {
 			}
 			path = newpath
 		}
-		if ss.DeleteText {
+		if rule.DeleteText {
 			textfile := changeExt(path, ".txt")
 			err = os.Remove(textfile)
 			if err != nil {
@@ -204,10 +204,10 @@ func luaFindRule(ss *setting) lua.LGFunction {
 		t.RawSetString("dir", lua.LString(rule.Dir))
 		t.RawSetString("file", lua.LString(rule.File))
 		t.RawSetString("encoding", lua.LString(rule.Encoding))
-		t.RawSetString("text", lua.LString(rule.Text))
 		t.RawSetString("layer", lua.LNumber(layer))
-		t.RawSetString("padding", padding)
+		t.RawSetString("text", lua.LString(rule.Text))
 		t.RawSetString("userdata", userdata)
+		t.RawSetString("padding", padding)
 		L.Push(t)
 		L.Push(lua.LString(text))
 		L.Push(lua.LString(path))

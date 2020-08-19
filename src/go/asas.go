@@ -16,10 +16,10 @@ import (
 
 type asas struct {
 	Exe    string
-	Folder string `default:"%TEMPDIR%"`
-	Filter string `default:"*.wav"`
+	Folder string
+	Filter string
 	Format string
-	Flags  int `default:"-1"`
+	Flags  int
 }
 
 func (a *asas) getASASName() (string, error) {
