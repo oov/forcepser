@@ -104,7 +104,75 @@ func processFiles(L *lua.LState, files []file, recentChanged map[string]int, rec
 	return
 }
 
-func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[string]int, recentSent map[string]time.Time, timer *time.Timer, loop int) error {
+func watch(watcher *fsnotify.Watcher, notify chan<- map[string]struct{}, abort <-chan struct{}, settingFile string, freshness float64){
+	defer close(notify)
+	var finish bool
+	changed := map[string]struct{}{}
+	timer := time.NewTimer(100 * time.Millisecond)
+	timer.Stop()
+	for {
+		select {
+		case event := <-watcher.Events:
+			if verbose {
+				log.Println("[INFO]", "イベント検証:", event)
+			}
+			if event.Op&(fsnotify.Create|fsnotify.Write) == 0 {
+				if verbose {
+					log.Println("[INFO]", "  オペレーションが Create / Write ではないので何もしません")
+				}
+				continue
+			}
+			if event.Name == settingFile {
+				if verbose {
+					log.Println("[INFO]", "  設定ファイルの再読み込みとして処理します")
+				}
+				finish = true
+				timer.Reset(100 * time.Millisecond)
+				continue
+			}
+			ext := strings.ToLower(filepath.Ext(event.Name))
+			if ext != ".wav" && ext != ".txt" {
+				if verbose {
+					log.Println("[INFO]", "  *.wav / *.txt のどちらでもないので何もしません")
+				}
+				continue
+			}
+			if freshness > 0 {
+				st, err := os.Stat(event.Name)
+				if err != nil {
+					if verbose {
+						log.Println("[INFO]", "  更新日時の取得に失敗したので何もしません")
+					}
+					continue
+				}
+				if math.Abs(time.Now().Sub(st.ModTime()).Seconds()) > freshness {
+					if verbose {
+						log.Println("[INFO]", "  更新日時が", freshness, "秒以上前なので何もしません")
+					}
+					continue
+				}
+			}
+			if verbose {
+				log.Println("[INFO]", "  送信ファイル候補にします")
+			}
+			changed[event.Name[:len(event.Name)-len(ext)]+".wav"] = struct{}{}
+			timer.Reset(100 * time.Millisecond)
+		case err := <-watcher.Errors:
+			log.Println("監視中にエラーが発生しました:", err)
+		case <-timer.C:
+			if finish {
+				notify <- nil
+				break
+			}
+			notify <- changed
+			changed = map[string]struct{}{}
+		case <-abort:
+			break
+		}
+	}
+}
+
+func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[string]int, recentSent map[string]time.Time, timer *time.Timer, loop int) error {
 	exePath, err := os.Executable()
 	if err != nil {
 		return errors.Wrap(err, "exe ファイルのパスが取得できません")
@@ -205,122 +273,79 @@ func watch(watcher *fsnotify.Watcher, settingFile string, recentChanged map[stri
 	if watching == 0 {
 		log.Println("  [警告] 監視対象のフォルダーがひとつもありません")
 	}
+	notify := make(chan map[string]struct{}, 32)
+	abort := make(chan struct{})
+	go watch(watcher, notify, abort, settingFile, setting.Freshness)
+	for files := range notify {
+		if files == nil {
+			log.Println()
+			log.Println("設定ファイルを再読み込みします")
+			log.Println()
+			return nil
+		}
 
-	var reload bool
-	for {
-		select {
-		case event := <-watcher.Events:
-			if verbose {
-				log.Println("[INFO]", "イベント検証:", event)
-			}
-			if event.Op&(fsnotify.Create|fsnotify.Write) == 0 {
-				if verbose {
-					log.Println("[INFO]", "  オペレーションが Create / Write ではないので何もしません")
-				}
-				continue
-			}
-			if event.Name == settingFile {
-				if verbose {
-					log.Println("[INFO]", "  設定ファイルの再読み込みとして処理します")
-				}
-				reload = true
-				timer.Reset(100 * time.Millisecond)
-				continue
-			}
-			ext := strings.ToLower(filepath.Ext(event.Name))
-			if ext != ".wav" && ext != ".txt" {
-				if verbose {
-					log.Println("[INFO]", "  *.wav / *.txt のどちらでもないので何もしません")
-				}
-				continue
-			}
-			if setting.Freshness > 0 {
-				st, err := os.Stat(event.Name)
-				if err != nil {
-					if verbose {
-						log.Println("[INFO]", "  更新日時の取得に失敗したので何もしません")
-					}
-					continue
-				}
-				if math.Abs(time.Now().Sub(st.ModTime()).Seconds()) > setting.Freshness {
-					if verbose {
-						log.Println("[INFO]", "  更新日時が", setting.Freshness, "秒以上前なので何もしません")
-					}
-					continue
-				}
-			}
-			if verbose {
-				log.Println("[INFO]", "  送信ファイル候補にします")
-			}
-			recentChanged[event.Name[:len(event.Name)-len(ext)]+".wav"] = 0
-			timer.Reset(100 * time.Millisecond)
-		case err := <-watcher.Errors:
-			log.Println("監視中にエラーが発生しました:", err)
-		case <-timer.C:
-			if reload {
-				log.Println()
-				log.Println("設定ファイルを再読み込みします")
-				log.Println()
-				return nil
-			}
-
-			now := time.Now()
-			for k := range recentSent {
-				if now.Sub(recentSent[k]) > 3*time.Second {
-					delete(recentSent, k)
-				}
-			}
-			var files []file
-			for k, tryCount := range recentChanged {
-				if verbose {
-					log.Println("[INFO]", "送信ファイル候補検証:", k)
-				}
-				if _, found := recentSent[k]; found {
-					if verbose {
-						log.Println("[INFO]", "  つい最近送ったファイルなので、重複送信回避のために無視します")
-					}
-					delete(recentChanged, k)
-					continue
-				}
-				s1, e1 := os.Stat(k)
-				s2, e2 := os.Stat(k[:len(k)-4] + ".txt")
-				if e1 != nil || e2 != nil {
-					if verbose {
-						log.Println("[INFO]", "  *.wav と *.txt が揃ってないので無視します")
-					}
-					delete(recentChanged, k)
-					continue
-				}
-				s1Mod := s1.ModTime()
-				s2Mod := s2.ModTime()
-				if setting.Delta > 0 {
-					if math.Abs(s1Mod.Sub(s2Mod).Seconds()) > setting.Delta {
-						if verbose {
-							log.Println("[INFO]", "  *.wav と *.txt の更新日時の差が", setting.Delta, "秒以上なので無視します")
-						}
-						delete(recentChanged, k)
-						continue
-					}
-				}
-				if verbose {
-					log.Println("[INFO]", "  このファイルはルール検索対象です")
-				}
-				files = append(files, file{k, s1Mod, tryCount})
-			}
-			if len(files) == 0 {
-				continue
-			}
-			L.SetGlobal("exofile", lua.LString(setting.ExoFile))
-			L.SetGlobal("luafile", lua.LString(setting.LuaFile))
-			needRetry, err := processFiles(L, files, recentChanged, recentSent)
-			if err != nil {
-				log.Println("ファイルの処理中にエラーが発生しました:", err)
-			}
-			if needRetry {
-				timer.Reset(500 * time.Millisecond)
+		now := time.Now()
+		for k := range recentSent {
+			if now.Sub(recentSent[k]) > 3*time.Second {
+				delete(recentSent, k)
 			}
 		}
+		for k := range files {
+			if _, ok := recentChanged[k]; !ok {
+				recentChanged[k] = 0
+			}
+		}
+		var files []file
+		for k, tryCount := range recentChanged {
+			if verbose {
+				log.Println("[INFO]", "送信ファイル候補検証:", k)
+			}
+			if _, found := recentSent[k]; found {
+				if verbose {
+					log.Println("[INFO]", "  つい最近送ったファイルなので、重複送信回避のために無視します")
+				}
+				delete(recentChanged, k)
+				continue
+			}
+			s1, e1 := os.Stat(k)
+			s2, e2 := os.Stat(k[:len(k)-4] + ".txt")
+			if e1 != nil || e2 != nil {
+				if verbose {
+					log.Println("[INFO]", "  *.wav と *.txt が揃ってないので無視します")
+				}
+				delete(recentChanged, k)
+				continue
+			}
+			s1Mod := s1.ModTime()
+			s2Mod := s2.ModTime()
+			if setting.Delta > 0 {
+				if math.Abs(s1Mod.Sub(s2Mod).Seconds()) > setting.Delta {
+					if verbose {
+						log.Println("[INFO]", "  *.wav と *.txt の更新日時の差が", setting.Delta, "秒以上なので無視します")
+					}
+					delete(recentChanged, k)
+					continue
+				}
+			}
+			if verbose {
+				log.Println("[INFO]", "  このファイルはルール検索対象です")
+			}
+			files = append(files, file{k, s1Mod, tryCount})
+		}
+		if len(files) == 0 {
+			continue
+		}
+		L.SetGlobal("exofile", lua.LString(setting.ExoFile))
+		L.SetGlobal("luafile", lua.LString(setting.LuaFile))
+		needRetry, err := processFiles(L, files, recentChanged, recentSent)
+		if err != nil {
+			log.Println("ファイルの処理中にエラーが発生しました:", err)
+		}
+		if needRetry {
+			timer.Reset(500 * time.Millisecond)
+		}
 	}
+	return nil
 }
 
 func main() {
@@ -371,7 +396,7 @@ func main() {
 	timer := time.NewTimer(100 * time.Millisecond)
 	timer.Stop()
 	for i := 0; ; i++ {
-		err = watch(watcher, settingFile, recentChanged, recentSent, timer, i)
+		err = process(watcher, settingFile, recentChanged, recentSent, timer, i)
 		if err != nil {
 			log.Println(err)
 			log.Println("3秒後にリトライします")
