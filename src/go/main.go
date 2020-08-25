@@ -207,13 +207,8 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 		return errors.Wrap(err, "_entrypoint.lua の実行中にエラーが発生しました")
 	}
 
-	log.Println("  filemove:", setting.FileMove)
-	log.Println("  deletetext:", setting.DeleteText)
 	log.Println("  delta:", setting.Delta)
 	log.Println("  freshness:", setting.Freshness)
-	log.Println("  exofile:", setting.ExoFile)
-	log.Println("  luafile:", setting.LuaFile)
-	log.Println("  padding:", setting.Padding)
 	log.Println()
 
 	updateOnly := loop > 0
@@ -249,6 +244,21 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 		}
 		log.Println("    ユーザーデータ:", r.UserData)
 		log.Println("    パディング:", r.Padding)
+		log.Println("    EXOファイル:", r.ExoFile)
+		log.Println("    Luaファイル:", r.LuaFile)
+		switch r.FileMove {
+		case "off":
+			log.Println("    Waveファイルの移動: しない")
+		case "move":
+			log.Println("    Waveファイルの移動: *.aup と同じ場所に移動")
+		case "copy":
+			log.Println("    Waveファイルの移動: *.aup と同じ場所にコピー")
+		}
+		if r.DeleteText {
+			log.Println("    テキストファイルの削除: する")
+		} else {
+			log.Println("    テキストファイルの削除: しない")
+		}
 		if !r.ExistsDir() {
 			log.Println("    [警告] 対象フォルダー が見つからないため設定を無視します")
 		}
