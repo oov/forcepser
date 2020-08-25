@@ -155,6 +155,8 @@ func luaFindRule(ss *setting) lua.LGFunction {
 		layer := rule.Layer
 		padding := lua.LValue(lua.LNumber(rule.Padding))
 		userdata := lua.LValue(lua.LString(rule.UserData))
+		exofile := lua.LValue(lua.LString(rule.ExoFile))
+		luafile := lua.LValue(lua.LString(rule.LuaFile))
 		if rule.Modifier != "" {
 			L2 := lua.NewState()
 			defer L2.Close()
@@ -174,8 +176,8 @@ func luaFindRule(ss *setting) lua.LGFunction {
 			L2.SetGlobal("wave", lua.LString(path))
 			L2.SetGlobal("padding", padding)
 			L2.SetGlobal("userdata", userdata)
-			L2.SetGlobal("exofile", L.GetGlobal("exofile"))
-			L2.SetGlobal("luafile", L.GetGlobal("luafile"))
+			L2.SetGlobal("exofile", exofile)
+			L2.SetGlobal("luafile", luafile)
 			if err = L2.DoString(rule.Modifier); err != nil {
 				L.RaiseError("modifier スクリプトの実行中にエラーが発生しました: %v", err)
 			}
@@ -183,8 +185,8 @@ func luaFindRule(ss *setting) lua.LGFunction {
 			text = L2.GetGlobal("text").String()
 			padding = L2.GetGlobal("padding")
 			userdata = L2.GetGlobal("userdata")
-			L.SetGlobal("exofile", L2.GetGlobal("exofile"))
-			L.SetGlobal("luafile", L2.GetGlobal("luafile"))
+			exofile = L2.GetGlobal("exofile")
+			luafile = L2.GetGlobal("luafile")
 
 			if newfilename := L2.GetGlobal("filename").String(); filename != newfilename {
 				newpath := filepath.Join(filepath.Dir(path), newfilename)
@@ -208,6 +210,8 @@ func luaFindRule(ss *setting) lua.LGFunction {
 		t.RawSetString("text", lua.LString(rule.Text))
 		t.RawSetString("userdata", userdata)
 		t.RawSetString("padding", padding)
+		t.RawSetString("exofile", exofile)
+		t.RawSetString("luafile", luafile)
 		L.Push(t)
 		L.Push(lua.LString(text))
 		L.Push(lua.LString(path))

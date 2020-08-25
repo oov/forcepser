@@ -335,8 +335,6 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 		if len(files) == 0 {
 			continue
 		}
-		L.SetGlobal("exofile", lua.LString(setting.ExoFile))
-		L.SetGlobal("luafile", lua.LString(setting.LuaFile))
 		needRetry, err := processFiles(L, files, recentChanged, recentSent)
 		if err != nil {
 			log.Println("ファイルの処理中にエラーが発生しました:", err)
