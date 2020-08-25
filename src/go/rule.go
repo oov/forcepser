@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -10,7 +11,6 @@ import (
 	"strings"
 
 	toml "github.com/pelletier/go-toml"
-	"github.com/pkg/errors"
 	"golang.org/x/text/encoding/japanese"
 	"golang.org/x/text/encoding/unicode"
 )
@@ -81,7 +81,7 @@ func makeWildcard(s string) (*regexp.Regexp, error) {
 func newSetting(path string, tempDir string) (*setting, error) {
 	config, err := loadTOML(path)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not read setting file")
+		return nil, fmt.Errorf("could not read setting file: %w", err)
 	}
 	var s setting
 	s.BaseDir = getString("basedir", config, "")
@@ -292,7 +292,7 @@ func (ss *setting) Find(path string) (*rule, string, error) {
 			if sjis == nil {
 				b, err := shiftjis.NewDecoder().Bytes(textRaw)
 				if err != nil {
-					return nil, "", errors.Wrap(err, "cannot convert encoding to shift_jis")
+					return nil, "", fmt.Errorf("cannot convert encoding to shift_jis: %w", err)
 				}
 				t := string(b)
 				sjis = &t
@@ -302,7 +302,7 @@ func (ss *setting) Find(path string) (*rule, string, error) {
 			if u16le == nil {
 				b, err := utf16le.NewDecoder().Bytes(textRaw)
 				if err != nil {
-					return nil, "", errors.Wrap(err, "cannot convert encoding to utf-16le")
+					return nil, "", fmt.Errorf("cannot convert encoding to utf-16le: %w", err)
 				}
 				t := string(b)
 				u16le = &t
@@ -312,7 +312,7 @@ func (ss *setting) Find(path string) (*rule, string, error) {
 			if u16be == nil {
 				b, err := utf16be.NewDecoder().Bytes(textRaw)
 				if err != nil {
-					return nil, "", errors.Wrap(err, "cannot convert encoding to utf-16be")
+					return nil, "", fmt.Errorf("cannot convert encoding to utf-16be: %w", err)
 				}
 				t := string(b)
 				u16be = &t
@@ -343,7 +343,7 @@ func (ss *setting) Dirs() []string {
 func loadTOML(path string) (*toml.Tree, error) {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to read file")
+		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 	return toml.LoadBytes(skipUTF8BOM(b))
 }

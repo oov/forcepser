@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/pkg/errors"
 	"github.com/yuin/gluare"
 	lua "github.com/yuin/gopher-lua"
 )
@@ -41,11 +40,11 @@ func processFiles(L *lua.LState, files []file, recentChanged map[string]int, rec
 		if verbose {
 			log.Println("[INFO] プロジェクト情報取得失敗:", err)
 		}
-		err = errors.Errorf("ごちゃまぜドロップス v0.3 以降がインストールされた AviUtl が検出できませんでした")
+		err = fmt.Errorf("ごちゃまぜドロップス v0.3 以降がインストールされた AviUtl が検出できませんでした")
 		return
 	}
 	if proj.Width == 0 {
-		err = errors.Errorf("AviUtl で編集中のプロジェクトが見つかりません")
+		err = fmt.Errorf("AviUtl で編集中のプロジェクトが見つかりません")
 		return
 	}
 	if verbose {
@@ -89,7 +88,7 @@ func processFiles(L *lua.LState, files []file, recentChanged map[string]int, rec
 	}
 	rv := L.ToTable(-1)
 	if rv == nil {
-		err = errors.Errorf("処理後の戻り値が異常です")
+		err = fmt.Errorf("処理後の戻り値が異常です")
 		return
 	}
 	// remove processed entries
@@ -104,7 +103,7 @@ func processFiles(L *lua.LState, files []file, recentChanged map[string]int, rec
 	return
 }
 
-func watch(watcher *fsnotify.Watcher, notify chan<- map[string]struct{}, abort <-chan struct{}, settingFile string, freshness float64){
+func watch(watcher *fsnotify.Watcher, notify chan<- map[string]struct{}, abort <-chan struct{}, settingFile string, freshness float64) {
 	defer close(notify)
 	var finish bool
 	changed := map[string]struct{}{}
@@ -175,13 +174,13 @@ func watch(watcher *fsnotify.Watcher, notify chan<- map[string]struct{}, abort <
 func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[string]int, recentSent map[string]time.Time, timer *time.Timer, loop int) error {
 	exePath, err := os.Executable()
 	if err != nil {
-		return errors.Wrap(err, "exe ファイルのパスが取得できません")
+		return fmt.Errorf("exe ファイルのパスが取得できません: %w", err)
 	}
 	tempDir := filepath.Join(filepath.Dir(exePath), "tmp")
 
 	setting, err := newSetting(settingFile, tempDir)
 	if err != nil {
-		return errors.Wrap(err, "設定の読み込みに失敗しました")
+		return fmt.Errorf("設定の読み込みに失敗しました: %w", err)
 	}
 
 	L := lua.NewState()
@@ -190,7 +189,7 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 	L.PreloadModule("re", gluare.Loader)
 	err = L.DoString(`re = require("re")`)
 	if err != nil {
-		return errors.Wrap(err, "Lua スクリプト環境の初期化中にエラーが発生しました")
+		return fmt.Errorf("Lua スクリプト環境の初期化中にエラーが発生しました: %w", err)
 	}
 
 	L.SetGlobal("debug_print", L.NewFunction(luaDebugPrint))
@@ -204,7 +203,7 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 	L.SetGlobal("tofilename", L.NewFunction(luaToFilename))
 
 	if err := L.DoFile("_entrypoint.lua"); err != nil {
-		return errors.Wrap(err, "_entrypoint.lua の実行中にエラーが発生しました")
+		return fmt.Errorf("_entrypoint.lua の実行中にエラーが発生しました: %w", err)
 	}
 
 	log.Println("  delta:", setting.Delta)
@@ -221,7 +220,7 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 		log.Println("    フラグ:", a.Flags)
 		if a.Exists() {
 			if _, err := a.ConfirmAndRun(updateOnly); err != nil {
-				return errors.Wrap(err, "プログラムの起動に失敗しました")
+				return fmt.Errorf("プログラムの起動に失敗しました: %w", err)
 			}
 		} else {
 			log.Println("    [警告] 対象EXE が見つからないため設定を無視します")
@@ -266,7 +265,7 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 	log.Println()
 
 	if err = os.Mkdir(tempDir, 0777); err != nil && !os.IsExist(err) {
-		return errors.Wrap(err, "tmp フォルダの作成に失敗しました")
+		return fmt.Errorf("tmp フォルダの作成に失敗しました: %w", err)
 	}
 
 	log.Println("監視を開始します:")
@@ -274,7 +273,7 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 	for _, dir := range setting.Dirs() {
 		err = watcher.Add(dir)
 		if err != nil {
-			return errors.Wrapf(err, "フォルダーが監視できません: %v", dir)
+			return fmt.Errorf("フォルダー %q が監視できません: %w", dir, err)
 		}
 		log.Println("  " + dir)
 		watching++

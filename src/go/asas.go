@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/binary"
+	"fmt"
 	"hash/fnv"
 	"os"
 	"os/exec"
@@ -10,7 +11,6 @@ import (
 	"strconv"
 	"unsafe"
 
-	"github.com/pkg/errors"
 	"golang.org/x/sys/windows"
 )
 
@@ -36,7 +36,7 @@ func writeStr(p []byte, s string) error {
 		return err
 	}
 	if len(u16) > windows.MAX_PATH {
-		return errors.New("string is too long")
+		return fmt.Errorf("string is too long: %d", len(u16))
 	}
 	for idx, ch := range u16 {
 		binary.LittleEndian.PutUint16(p[idx*2:], ch)
@@ -88,8 +88,9 @@ func (a *asas) UpdateRunning() (bool, error) {
 	mh.Data = p
 	mh.Len = 8 + windows.MAX_PATH*2*3
 	mh.Cap = mh.Len
-	if binary.LittleEndian.Uint32(m[0:]) != 0 {
-		return false, errors.New("unknown api version")
+	apiVer := binary.LittleEndian.Uint32(m[0:])
+	if apiVer != 0 {
+		return false, fmt.Errorf("unknown api version: %d", apiVer)
 	}
 
 	binary.LittleEndian.PutUint32(m[4:], uint32(a.Flags))
@@ -145,7 +146,7 @@ func (a *asas) ConfirmAndRun(updateOnly bool) (bool, error) {
 func (a *asas) Run() (bool, error) {
 	exePath, err := os.Executable()
 	if err != nil {
-		return false, errors.Wrap(err, "exe ファイルのパスが取得できません")
+		return false, fmt.Errorf("exe ファイルのパスが取得できません: %w", err)
 	}
 	cmd := exec.Command(filepath.Join(filepath.Dir(exePath), "asas", "asas.exe"), a.Exe)
 	asasName, err := a.getASASName()
@@ -161,7 +162,7 @@ func (a *asas) Run() (bool, error) {
 	)
 	cmd.Dir = filepath.Dir(a.Exe)
 	if err = cmd.Start(); err != nil {
-		return false, errors.Wrap(err, "asas.exe の実行に失敗しました")
+		return false, fmt.Errorf("asas.exe の実行に失敗しました: %w", err)
 	}
 	go cmd.Wait()
 	return true, nil
