@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1beta20 2020-08-26
+
+- github.com/pkg/errors への依存を削除
+- setting.txt-template 内の `[[asas]]` と `[[rule]]` をデフォルトでコメントアウト
+- exofile / luafile で `%BASEDIR%` `%TEMPDIR%` `%PROJECTDIR%` を使用可能にした
+
 ## 0.1beta19 2020-08-26
 
 - exofile / luafile の仕組みが正しく動いていなかったのを修正
