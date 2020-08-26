@@ -104,6 +104,7 @@ local function genexofromtemplate(exo, proj, file, text, rule)
   end
   local s = fromsjis(f:read("*all"))
   f:close()
+  debug_print("  テンプレートファイル " .. exo .. " を使用します")
   local ai = getaudioinfo(file)
   local length = math.ceil((ai.samples * proj.video_rate) / (ai.samplerate * proj.video_scale))
   local padding = math.ceil((rule.padding * proj.video_rate) / (1000 * proj.video_scale))
@@ -129,6 +130,9 @@ function drop(proj, file, text, rule)
   local f, err = loadfile(rule.luafile)
   if f ~= nil then
     local m = f()
+    if m.gen2 ~= nil or m.gen ~= nil then
+      debug_print("  テンプレートスクリプト " .. rule.luafile .. " を使用します")
+    end
     if m.gen2 ~= nil then
       exo, length = m.gen2(proj, file, text, rule)
     elseif m.gen ~= nil then
