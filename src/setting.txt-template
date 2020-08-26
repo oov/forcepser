@@ -6,7 +6,9 @@
 # - CeVIO Creative Studio 7
 # - 棒読みちゃん + Bouyomichan-wav-and-txt.dll
 # - ゆっくり調声くん
-# 必要な分は自分の環境に合わせて設定を書き換え、不要な分は削除して使用してください。
+# 下にある各ソフト向けの設定の記述例のうち、必要な部分の行頭にある「#」を外してコメントアウトを解除し、
+# 内容も適宜自分の環境に合わせ書き換えてご利用ください。
+# 各ソフトごとに [[asas]] セクションと [[rule]] セクションがあるのでご注意ください。
 
 # 「#」で始まる行はコメントで、設定の意味を解説したりしています。
 # また、このファイルに書かれているのは一部の設定のみです。すべての設定項目を確認するには以下のドキュメントを参照してください。
@@ -35,36 +37,36 @@ deletetext = true
 # ◆ 例: VOICEROID2 を連動起動
 # ソフト上で `音声保存` ボタンを押すと `ボイロ2_20201231235959.wav` のようなファイル名で「名前を付けて保存」のダイアログを自動処理します。  
 # 保存先はかんしくんと同じ場所にある `tmp` フォルダーです。
-[[asas]]
-exe = 'C:\Program Files (x86)\AHS\VOICEROID2\VoiceroidEditor.exe'
-format = 'ボイロ2_*.wav'
+#[[asas]]
+#exe = 'C:\Program Files (x86)\AHS\VOICEROID2\VoiceroidEditor.exe'
+#format = 'ボイロ2_*.wav'
 
 # ◆ 例: VOICEROID+ 東北きりたん EX を連動起動
 # ソフト上で `音声保存` ボタンを押すと `きりたん_20201231235959.wav` のようなファイル名で「名前を付けて保存」のダイアログを自動処理します。  
 # 保存先はかんしくんと同じ場所にある `tmp` フォルダーです。
-[[asas]]
-exe = 'C:\Program Files (x86)\AHS\VOICEROID+\KiritanEX\VOICEROID.exe'
-format = 'きりたん_*.wav'
+#[[asas]]
+#exe = 'C:\Program Files (x86)\AHS\VOICEROID+\KiritanEX\VOICEROID.exe'
+#format = 'きりたん_*.wav'
 
 # ◆ 例: CeVIO Creative Studio を連動起動
 # ソフト上で右クリックメニューから `WAV書き出し` を選ぶと `00_さとうささら_こんにちは.wav` のようなデフォルトファイル名で「名前を付けて保存」のダイアログを自動処理します。  
 # 保存先はかんしくんと同じ場所にある `tmp` フォルダーです。
 # ※CeVIO では音声とテキストを一緒に保存するための設定項目が「名前を付けて保存」のダイアログ内にあるため、実際に連動起動する前に手動で起動して設定を有効にしておく必要があります。
-[[asas]]
-exe = 'C:\Program Files\CeVIO\CeVIO Creative Studio (64bit)\CeVIO Creative Studio.exe'
+#[[asas]]
+#exe = 'C:\Program Files\CeVIO\CeVIO Creative Studio (64bit)\CeVIO Creative Studio.exe'
 
 # ◆ 例: Bouyomichan-wav-and-txt.dll を導入した棒読みちゃんを連動起動
 # 棒読みちゃん に Bouyomichan-wav-and-txt.dll を導入すると、音声とテキストを同じ名前で保存できます。  
 # このプラグインは音声ファイルの保存時に「名前を付けて保存」のダイアログを使用していないため、ダイアログの自動処理機能は無効にしておきます。
-[[asas]]
-exe = 'C:\Users\YourName\Documents\BouyomiChan\BouyomiChan.exe'
-flags = 0
+#[[asas]]
+#exe = 'C:\Users\YourName\Documents\BouyomiChan\BouyomiChan.exe'
+#flags = 0
 
 # ◆ 例: ゆっくり調声くんを連動起動
 # ゆっくり調声くん は音声ファイルの保存時に「名前を付けて保存」のダイアログを使用していないため、ダイアログの自動処理機能は無効にしておきます。
-[[asas]]
-exe = 'C:\Users\YourName\Documents\YukkuriChoseiKun\YukkuriChoseiKun.exe'
-flags = 0
+#[[asas]]
+#exe = 'C:\Users\YourName\Documents\YukkuriChoseiKun\YukkuriChoseiKun.exe'
+#flags = 0
 
 # ==== [[rule]] セクション ====
 # フォルダーを監視し、作成されたファイルの名前や内容を元にどのレイヤーに投げ込めばいいのかを振り分けするための設定を記述します
@@ -77,64 +79,64 @@ flags = 0
 # 3. ファイル名を `201231_235959_きりたん_こんにちは.wav` のようなものに変更
 # という処理を施した上で、レイヤー1に投げ込みます。
 # ※ VOICEROID2 で音声を出力するときは、ボイスプリセットタグをつけて `東北きりたん(v1)＞こんにちは` のように入力してください。
-[[rule]]
-encoding = 'sjis'
-file = 'ボイロ2_*.wav'
-text = '''^東北きりたん\(v1\)＞'''
-layer = 1
-modifier = '''
-  text = re.gsub(text, "^.*?＞", "") -- ボイスプリセットタグを除去
-  text = re.gsub(text, "＜＜(.*?)｜.*?＞＞", "${1}") -- ルビを除去
-  filename = os.date("%y%m%d_%H%M%S") .. "_きりたん_" .. tofilename(text, 10) .. ".wav"
-'''
+#[[rule]]
+#encoding = 'sjis'
+#file = 'ボイロ2_*.wav'
+#text = '''^東北きりたん\(v1\)＞'''
+#layer = 1
+#modifier = '''
+#  text = re.gsub(text, "^.*?＞", "") -- ボイスプリセットタグを除去
+#  text = re.gsub(text, "＜＜(.*?)｜.*?＞＞", "${1}") -- ルビを除去
+#  filename = os.date("%y%m%d_%H%M%S") .. "_きりたん_" .. tofilename(text, 10) .. ".wav"
+#'''
 
 # ◆ VOICEROID+ 東北きりたん EX を [[asas]] 経由で連動起動しているときのための振り分け設定
 # かんしくんと同じ場所にある tmp フォルダーに「きりたん_20201231235959.wav」のような名前のファイルが作成されたとき
 # テキストからルビタグを除去し、
 # AviUtl のプロジェクトファイルと同じ場所に *.wav を移動して、ファイル名を「201231_235959_きりたん_こんにちは.wav」に変更してレイヤー1に投げ込む
-[[rule]]
-encoding = 'sjis'
-file = 'きりたん_*.wav'
-layer = 1
-modifier = '''
-  text = re.gsub(text, "＜＜(.*?)｜.*?＞＞", "${1}") -- ルビを除去
-  filename = os.date("%y%m%d_%H%M%S") .. "_きりたん_" .. tofilename(text, 10) .. ".wav"
-'''
+#[[rule]]
+#encoding = 'sjis'
+#file = 'きりたん_*.wav'
+#layer = 1
+#modifier = '''
+#  text = re.gsub(text, "＜＜(.*?)｜.*?＞＞", "${1}") -- ルビを除去
+#  filename = os.date("%y%m%d_%H%M%S") .. "_きりたん_" .. tofilename(text, 10) .. ".wav"
+#'''
 
 # ◆ CeVIO Creative Studio を [[asas]] 経由で連動起動しているときのための振り分け設定
 # かんしくんと同じ場所にある tmp フォルダーに「00_さとうささら_こんにちは.wav」のような名前のファイルが作成されたとき
 # テキストからルビタグを除去し、
 # AviUtl のプロジェクトファイルと同じ場所に *.wav を移動して、ファイル名を「201231_235959_ささら_こんにちは.wav」に変更した上でレイヤー1に投げ込む
 # ※予め CeVIO を連動起動を使わずに起動し、トークのエクスポートでテキストファイルも一緒に書き出し、更にその文字コードが Shift_JIS になるように設定してください
-[[rule]]
-encoding = 'sjis'
-file = '*_さとうささら_*.wav'
-layer = 1
-modifier = '''
-  text = re.gsub(text, "｜?([^｜《》]*)《.*?》", "${1}") -- ルビを除去
-  filename = os.date("%y%m%d_%H%M%S") .. "_ささら_" .. tofilename(text, 10) .. ".wav"
-'''
+#[[rule]]
+#encoding = 'sjis'
+#file = '*_さとうささら_*.wav'
+#layer = 1
+#modifier = '''
+#  text = re.gsub(text, "｜?([^｜《》]*)《.*?》", "${1}") -- ルビを除去
+#  filename = os.date("%y%m%d_%H%M%S") .. "_ささら_" .. tofilename(text, 10) .. ".wav"
+#'''
 
 # ◆ Bouyomichan-wav-and-txt.dll を導入した棒読みちゃんの振り分け設定
 # かんしくんと同じ場所にある tmp フォルダーに「201231_235959_女性１_V@100_S@100_T@100_こんにちは。.wav」のような名前のファイルが作成されたとき
 # AviUtl のプロジェクトファイルと同じ場所に *.wav を移動して、ファイル名を「201231_235959_女性１_こんにちは.wav」に変更した上でレイヤー1に投げ込む
 # ※Bouyomichan-wav-and-txt.dll の設定で「ファイルの保存場所」をかんしくんと同じ場所にある tmp フォルダーに指定してください
-[[rule]]
-encoding = 'sjis'
-file = '*_女性１_*.wav'
-layer = 1
-modifier = '''
-  filename = os.date("%y%m%d_%H%M%S") .. "_女性１_" .. tofilename(text, 10) .. ".wav"
-'''
+#[[rule]]
+#encoding = 'sjis'
+#file = '*_女性１_*.wav'
+#layer = 1
+#modifier = '''
+#  filename = os.date("%y%m%d_%H%M%S") .. "_女性１_" .. tofilename(text, 10) .. ".wav"
+#'''
 
 # ◆ ゆっくり調声くんの振り分け設定
 # ゆっくり調声くんのプロジェクトファイルと同じ場所に「1_霊夢_こんにちは.wav」のような名前で音声ファイルが作成されたとき
 # AviUtl のプロジェクトファイルと同じ場所に *.wav を移動して、ファイル名を「201231_235959_霊夢_こんにちは.wav」に変更した上でレイヤー1に投げ込む
-[[rule]]
-encoding = 'sjis'
-dir = 'C:\Users\YourName\ゆっくり調声くんプロジェクト'
-file = '*_霊夢_*.wav'
-layer = 1
-modifier = '''
-  filename = os.date("%y%m%d_%H%M%S") .. "_霊夢_" .. tofilename(text, 10) .. ".wav"
-'''
+#[[rule]]
+#encoding = 'sjis'
+#dir = 'C:\Users\YourName\ゆっくり調声くんプロジェクト'
+#file = '*_霊夢_*.wav'
+#layer = 1
+#modifier = '''
+#  filename = os.date("%y%m%d_%H%M%S") .. "_霊夢_" .. tofilename(text, 10) .. ".wav"
+#'''
