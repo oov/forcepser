@@ -50,6 +50,8 @@ type setting struct {
 	Padding    int
 	Rule       []rule
 	Asas       []asas
+
+	tempDir string
 }
 
 func makeWildcard(s string) (*regexp.Regexp, error) {
@@ -84,6 +86,7 @@ func newSetting(path string, tempDir string) (*setting, error) {
 		return nil, fmt.Errorf("could not read setting file: %w", err)
 	}
 	var s setting
+	s.tempDir = tempDir
 	s.BaseDir = getString("basedir", config, "")
 
 	s.Delta = getFloat64("delta", config, 15.0)
@@ -101,7 +104,7 @@ func newSetting(path string, tempDir string) (*setting, error) {
 	}
 	s.DeleteText = getBool("deletetext", config, false)
 
-	dirReplacer := strings.NewReplacer("%BASEDIR%", s.BaseDir, "%TEMPDIR%", tempDir)
+	dirReplacer := strings.NewReplacer("%BASEDIR%", s.BaseDir, "%TEMPDIR%", s.tempDir)
 
 	for _, tr := range getSubTreeArray("rule", config) {
 		var r rule

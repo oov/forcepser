@@ -62,6 +62,26 @@ func luaExecute(path string, text string) lua.LGFunction {
 	}
 }
 
+func luaReplaceEnv(ss *setting) lua.LGFunction {
+	return func(L *lua.LState) int {
+		path := L.ToString(1)
+		proj := L.ToTable(2)
+		if strings.Index(path, "%PROJECTDIR%") != -1 {
+			if proj == nil {
+				L.RaiseError("replaceenv でプロジェクトデータが渡されていません")
+			}
+			if lua.LVAsNumber(proj.RawGetString("gcmzapiver")) < 1 {
+				L.RaiseError("`%PROJECTDIR%` を使うためには ごちゃまぜドロップス v0.3.13 以降が必要です")
+			}
+			projfile := lua.LVAsString(proj.RawGetString("projectfile"))
+			path = strings.NewReplacer("%PROJECTDIR%", filepath.Dir(projfile)).Replace(path)
+		}
+		path = strings.NewReplacer("%BASEDIR%", ss.BaseDir, "%TEMPDIR%", ss.tempDir).Replace(path)
+		L.Push(lua.LString(path))
+		return 1
+	}
+}
+
 func copyFile(dst, src string) error {
 	sf, err := os.Open(src)
 	if err != nil {

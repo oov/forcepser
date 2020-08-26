@@ -123,6 +123,8 @@ local function genexofromtemplate(exo, proj, file, text, rule)
 end
 
 function drop(proj, file, text, rule)
+  rule.luafile = replaceenv(rule.luafile, proj)
+  rule.exofile = replaceenv(rule.exofile, proj)
   local exo, length = nil, nil
   local f, err = loadfile(rule.luafile)
   if f ~= nil then
