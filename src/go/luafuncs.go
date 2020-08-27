@@ -318,3 +318,24 @@ func luaToEXOString(L *lua.LState) int {
 	L.Push(lua.LString(buf))
 	return 1
 }
+
+func atoich(a byte) int {
+	if '0' <= a && a <= '9' {
+		return int(a - '0')
+	}
+	return int(a&0xdf - 'A' + 10)
+}
+
+func luaFromEXOString(L *lua.LState) int {
+	src := L.ToString(1)
+	var buf [1024]rune
+	for i := 0; i + 3 < len(src); i+=4 {
+		buf[i/4] = rune((atoich(src[i])<<4)|atoich(src[i+1])|(atoich(src[i+2])<<12)|(atoich(src[i+3])<<8))
+		if buf[i/4] == 0 {
+			L.Push(lua.LString(buf[:i/4]))
+			return 1
+		}
+	}
+	L.Push(lua.LString(buf[:]))
+	return 1
+}

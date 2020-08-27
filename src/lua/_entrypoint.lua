@@ -97,6 +97,24 @@ local function genexo(proj, file, text, rule)
   return tosjis(table.concat(exo, "\r\n")), length+padding
 end
 
+local function parseexo(lines)
+  local ini = {}
+  local sect = ""
+  for line in lines:gmatch('[^\r\n]+') do
+    local m = line:match('^%[([^%]]+)%]$')
+    if m ~= nil then
+      sect = m
+      ini[sect] = ini[sect] or {}
+    else
+      local k, v = line:match('^([^=]+)=(.*)$')
+      if k ~= nil then
+        ini[sect][k] = v
+      end
+    end
+  end
+  return ini
+end
+
 local function genexofromtemplate(exo, proj, file, text, rule)
   local f, err = io.open(exo, "rb")
   if f == nil then
@@ -106,21 +124,69 @@ local function genexofromtemplate(exo, proj, file, text, rule)
   f:close()
   debug_print("  テンプレートファイル " .. exo .. " を使用します")
   local ai = getaudioinfo(file)
-  local length = math.ceil((ai.samples * proj.video_rate) / (ai.samplerate * proj.video_scale))
-  local padding = math.ceil((rule.padding * proj.video_rate) / (1000 * proj.video_scale))
-  s = s:gsub("%%WIDTH%%", tostring(proj.width))
-  s = s:gsub("%%HEIGHT%%", tostring(proj.height))
-  s = s:gsub("%%RATE%%", tostring(proj.video_rate))
-  s = s:gsub("%%SCALE%%", tostring(proj.video_scale))
-  s = s:gsub("%%LENGTH%%", tostring(length))
-  s = s:gsub("%%PADDING%%", tostring(padding))
-  s = s:gsub("%%AUDIO_RATE%%", tostring(proj.audio_rate))
-  s = s:gsub("%%AUDIO_CH%%", tostring(proj.audio_ch))
-  s = s:gsub("%%WAVE%%", file)
-  s = s:gsub("%%TEXT%%", text)
-  s = s:gsub("%%EXOTEXT%%", toexostring(text))
-  s = s:gsub("%%EXOJSON%%", toexostring('{"padding":'..padding..'}'))
-  return tosjis(s), length+padding
+  if s:match('%%WAVE%%') ~= nil then
+    local length = math.ceil((ai.samples * proj.video_rate) / (ai.samplerate * proj.video_scale))
+    local padding = math.ceil((rule.padding * proj.video_rate) / (1000 * proj.video_scale))
+    s = s:gsub("%%WIDTH%%", tostring(proj.width))
+    s = s:gsub("%%HEIGHT%%", tostring(proj.height))
+    s = s:gsub("%%RATE%%", tostring(proj.video_rate))
+    s = s:gsub("%%SCALE%%", tostring(proj.video_scale))
+    s = s:gsub("%%LENGTH%%", tostring(length))
+    s = s:gsub("%%PADDING%%", tostring(padding))
+    s = s:gsub("%%AUDIO_RATE%%", tostring(proj.audio_rate))
+    s = s:gsub("%%AUDIO_CH%%", tostring(proj.audio_ch))
+    s = s:gsub("%%WAVE%%", file)
+    s = s:gsub("%%TEXT%%", text)
+    s = s:gsub("%%EXOTEXT%%", toexostring(text))
+    s = s:gsub("%%EXOJSON%%", toexostring('{"padding":'..padding..'}'))
+    return tosjis(s), length+padding
+  else
+    local ini = parseexo(s)
+    local tplproj = {
+      width = tonumber(ini.exedit.width),
+      height = tonumber(ini.exedit.height),
+      video_rate = tonumber(ini.exedit.rate),
+      video_scale = tonumber(ini.exedit.scale),
+      audio_rate = tonumber(ini.exedit.audio_rate),
+      audio_ch = tonumber(ini.exedit.audio_ch),
+    }
+    local length = math.ceil((ai.samples * tplproj.video_rate) / (ai.samplerate * tplproj.video_scale))
+    local padding = math.ceil((rule.padding * tplproj.video_rate) / (1000 * tplproj.video_scale))
+    local tgst, tged = -1, -1
+    for sect, t in pairs(ini) do
+      if sect:match('^%d+%.0$') ~= nil then
+        if t._name == "音声ファイル" and t.file == "" then
+          -- ファイルを指定していない音声ファイルオブジェクトには音声ファイルへのパスを突っ込む
+          ini[sect].file = file
+          ini[sect]["動画ファイルと連携"] = "0"
+          ini[sect].__json = toexostring('{"padding":'..padding..'}')
+          local psect = sect:sub(1, #sect-2)
+          tgst, tged = ini[psect]["start"], ini[psect]["end"]
+        elseif t._name == "テキスト" and t.text:sub(1, 12) == "575b555e0000" then
+          -- 本文が「字幕」になっているテキストオブジェクトには字幕を突っ込む
+          ini[sect].text = toexostring(text)
+        end
+      end
+    end
+    for sect, t in pairs(ini) do
+      if sect:match('^%d+$') ~= nil then
+        if t["start"] == tgst and t["end"] == tged then
+          ini[sect]["end"] = tostring(length)
+        elseif t["end"] == tged then
+          ini[sect]["start"] = tostring(t["start"] + length - tged)
+          ini[sect]["end"] = tostring(length)
+        end
+      end
+    end
+    local r = {}
+    for sect, t in pairs(ini) do
+      table.insert(r, "[" .. sect .. "]")
+      for k, v in pairs(t) do
+        table.insert(r, k .. "=" .. v)
+      end
+    end
+    return tosjis(table.concat(r, "\r\n")), length+padding
+  end
 end
 
 function drop(proj, file, text, rule)

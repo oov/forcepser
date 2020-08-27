@@ -201,6 +201,7 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 	L.SetGlobal("tosjis", L.NewFunction(luaToSJIS))
 	L.SetGlobal("fromsjis", L.NewFunction(luaFromSJIS))
 	L.SetGlobal("toexostring", L.NewFunction(luaToEXOString))
+	L.SetGlobal("fromexostring", L.NewFunction(luaFromEXOString))
 	L.SetGlobal("tofilename", L.NewFunction(luaToFilename))
 	L.SetGlobal("replaceenv", L.NewFunction(luaReplaceEnv(setting)))
 
