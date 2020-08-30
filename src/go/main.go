@@ -105,6 +105,37 @@ func processFiles(L *lua.LState, files []file, recentChanged map[string]int, rec
 	return
 }
 
+func getProjectPath() string {
+	proj, err := readGCMZDropsData()
+	if err != nil {
+		return ""
+	}
+	if proj.Width == 0 {
+		return ""
+	}
+	if proj.GCMZAPIVer < 1 {
+		return ""
+	}
+	return proj.ProjectFile
+}
+
+func watchProjectPath(ctx context.Context, notify chan<- map[string]struct{}, projectPath string) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(5 * time.Second):
+			if projectPath != getProjectPath() {
+				if verbose {
+					log.Println("[INFO]", "  AviUtl のプロジェクトパスの変更を検出しました")
+				}
+				notify <- nil
+				return
+			}
+		}
+	}
+}
+
 func watch(ctx context.Context, watcher *fsnotify.Watcher, notify chan<- map[string]struct{}, settingFile string, freshness float64) {
 	defer close(notify)
 	var finish bool
@@ -180,10 +211,22 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 	}
 	tempDir := filepath.Join(filepath.Dir(exePath), "tmp")
 
-	setting, err := newSetting(settingFile, tempDir)
+	projectPath := getProjectPath()
+	var projectDir string
+	if projectPath != "" {
+		projectDir = filepath.Dir(projectPath)
+	}
+
+	setting, err := newSetting(settingFile, tempDir, projectDir)
 	if err != nil {
 		return fmt.Errorf("設定の読み込みに失敗しました: %w", err)
 	}
+
+	log.Println("  環境変数:")
+	log.Println("    %BASEDIR%:", setting.BaseDir)
+	log.Println("    %TEMPDIR%:", setting.tempDir)
+	log.Println("    %PROJECTDIR%:", setting.projectDir)
+	log.Println()
 
 	L := lua.NewState()
 	defer L.Close()
@@ -289,6 +332,7 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 	notify := make(chan map[string]struct{}, 32)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	go watchProjectPath(ctx, notify, projectPath)
 	go watch(ctx, watcher, notify, settingFile, setting.Freshness)
 	for files := range notify {
 		if files == nil {

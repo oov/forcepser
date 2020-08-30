@@ -51,7 +51,8 @@ type setting struct {
 	Rule       []rule
 	Asas       []asas
 
-	tempDir string
+	tempDir    string
+	projectDir string
 }
 
 func makeWildcard(s string) (*regexp.Regexp, error) {
@@ -80,13 +81,14 @@ func makeWildcard(s string) (*regexp.Regexp, error) {
 	return regexp.Compile(string(buf))
 }
 
-func newSetting(path string, tempDir string) (*setting, error) {
+func newSetting(path string, tempDir string, projectDir string) (*setting, error) {
 	config, err := loadTOML(path)
 	if err != nil {
 		return nil, fmt.Errorf("could not read setting file: %w", err)
 	}
 	var s setting
 	s.tempDir = tempDir
+	s.projectDir = projectDir
 	s.BaseDir = getString("basedir", config, "")
 
 	s.Delta = getFloat64("delta", config, 15.0)
@@ -104,7 +106,7 @@ func newSetting(path string, tempDir string) (*setting, error) {
 	}
 	s.DeleteText = getBool("deletetext", config, false)
 
-	dirReplacer := strings.NewReplacer("%BASEDIR%", s.BaseDir, "%TEMPDIR%", s.tempDir)
+	dirReplacer := strings.NewReplacer("%BASEDIR%", s.BaseDir, "%TEMPDIR%", s.tempDir, "%PROJECTDIR%", s.projectDir)
 
 	for _, tr := range getSubTreeArray("rule", config) {
 		var r rule
