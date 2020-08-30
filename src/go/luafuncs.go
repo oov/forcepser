@@ -120,7 +120,7 @@ func delayRemove(files []string, delay float64) {
 	time.Sleep(time.Duration(delay) * time.Second)
 	for _, f := range files {
 		if err := os.Remove(f); err != nil {
-			log.Println("[WARN]", "移動元のファイル %q の削除に失敗しました: %v", f, err)
+			log.Printf("[WARN] 移動元のファイル %q の削除に失敗しました: %v\n", f, err)
 		}
 		if verbose {
 			log.Println("[INFO]", "ファイル削除:", f)
@@ -177,9 +177,9 @@ func luaFindRule(ss *setting) lua.LGFunction {
 			}
 			switch ss.FileMove {
 			case "copy":
-				log.Println("  filemove の設定に従い wav と txt をプロジェクトファイルと同じ場所にコピーしました")
+				log.Println("  filemove = \"copy\" の設定に従い wav と txt をプロジェクトファイルと同じ場所にコピーしました")
 			case "move":
-				log.Println("  filemove の設定に従い wav と txt をプロジェクトファイルと同じ場所に移動しました")
+				log.Println("  filemove = \"move\" の設定に従い wav と txt をプロジェクトファイルと同じ場所に移動しました")
 			}
 			path = filepath.Join(ss.projectDir, filepath.Base(path))
 		}
