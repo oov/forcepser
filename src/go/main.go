@@ -344,7 +344,7 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 
 		now := time.Now()
 		for k := range recentSent {
-			if now.Sub(recentSent[k]) > 3*time.Second {
+			if now.Sub(recentSent[k]) > 5*time.Second {
 				delete(recentSent, k)
 			}
 		}
