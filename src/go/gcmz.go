@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"unicode/utf16"
 	"unsafe"
+	"runtime"
 
 	lua "github.com/yuin/gopher-lua"
 	"golang.org/x/sys/windows"
@@ -65,6 +66,9 @@ type gcmzDropsData struct {
 }
 
 func readGCMZDropsData() (*gcmzDropsData, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	fileMappingName, err := windows.UTF16PtrFromString("GCMZDrops")
 	if err != nil {
 		return nil, err
