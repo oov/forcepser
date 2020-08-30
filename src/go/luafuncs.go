@@ -116,6 +116,18 @@ func enumMoveTargetFiles(wavpath string) ([]string, error) {
 	return r, nil
 }
 
+func delayRemove(files []string, delay float64) {
+	time.Sleep(time.Duration(delay) * time.Second)
+	for _, f := range files {
+		if err := os.Remove(f); err != nil {
+			log.Println("[WARN]", "移動元のファイル %q の削除に失敗しました: %v", f, err)
+		}
+		if verbose {
+			log.Println("[INFO]", "ファイル削除:", f)
+		}
+	}
+}
+
 func luaFindRule(ss *setting) lua.LGFunction {
 	return func(L *lua.LState) int {
 		path := L.ToString(1)
@@ -143,6 +155,7 @@ func luaFindRule(ss *setting) lua.LGFunction {
 				L.RaiseError("`filemove = %q` を使うためには ごちゃまぜドロップス v0.3.13 以降を導入し、AviUtl のプロジェクトファイルを保存しておく必要があります", ss.FileMove)
 			}
 			dir := filepath.Dir(path)
+			deleteFiles := []string{}
 			for _, f := range files {
 				oldpath := filepath.Join(dir, f)
 				newpath := filepath.Join(ss.projectDir, f)
@@ -154,14 +167,13 @@ func luaFindRule(ss *setting) lua.LGFunction {
 					log.Println("[INFO]", "ファイルコピー", oldpath, "->", newpath)
 				}
 				if ss.FileMove == "move" {
-					err = os.Remove(oldpath)
-					if err != nil {
-						L.RaiseError("移動元のファイル %q が削除できません: %v", oldpath, err)
-					}
-					if verbose {
-						log.Println("[INFO]", "ファイル削除:", oldpath)
-					}
+					deleteFiles = append(deleteFiles, oldpath)
 				}
+			}
+			if ss.MoveDelay > 0 {
+				go delayRemove(deleteFiles, ss.MoveDelay)
+			} else {
+				delayRemove(deleteFiles, 0)
 			}
 			switch ss.FileMove {
 			case "copy":
