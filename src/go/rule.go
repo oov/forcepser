@@ -27,6 +27,7 @@ type rule struct {
 	ExoFile    string
 	LuaFile    string
 	FileMove   string
+	MoveDelay  float64
 	DeleteText bool
 	Padding    int
 
@@ -94,7 +95,7 @@ func newSetting(path string, tempDir string, projectDir string) (*setting, error
 
 	s.Delta = getFloat64("delta", config, 15.0)
 	s.Freshness = getFloat64("freshness", config, 5.0)
-	s.MoveDelay = getFloat64("movedelay", config, 3.0)
+	s.MoveDelay = getFloat64("movedelay", config, 0)
 	s.Padding = getInt("padding", config, 0)
 	s.ExoFile = getString("exofile", config, "template.exo")
 	s.LuaFile = getString("luafile", config, "genexo.lua")
@@ -146,6 +147,7 @@ func newSetting(path string, tempDir string, projectDir string) (*setting, error
 		default:
 			r.FileMove = s.FileMove
 		}
+		r.MoveDelay = getFloat64("movedelay", tr, s.MoveDelay)
 		r.LuaFile = getString("luafile", tr, s.LuaFile)
 		r.Padding = getInt("padding", tr, s.Padding)
 

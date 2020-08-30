@@ -171,8 +171,8 @@ func luaFindRule(ss *setting) lua.LGFunction {
 						deleteFiles = append(deleteFiles, oldpath)
 					}
 				}
-				if ss.MoveDelay > 0 {
-					go delayRemove(deleteFiles, ss.MoveDelay)
+				if rule.MoveDelay > 0 {
+					go delayRemove(deleteFiles, rule.MoveDelay)
 				} else {
 					delayRemove(deleteFiles, 0)
 				}
