@@ -93,6 +93,29 @@ func changeExt(path, ext string) string {
 	return path[:len(path)-len(filepath.Ext(path))] + ext
 }
 
+func enumMoveTargetFiles(wavpath string) ([]string, error) {
+	d, err := os.Open(filepath.Dir(wavpath))
+	if err != nil {
+		return nil, err
+	}
+	defer d.Close()
+
+	fis, err := d.Readdir(0)
+	if err != nil {
+		return nil, err
+	}
+
+	fname := changeExt(filepath.Base(wavpath), "")
+	r := []string{}
+	for _, fi := range fis {
+		n := fi.Name()
+		if changeExt(n, "") == fname && !fi.IsDir() {
+			r = append(r, n)
+		}
+	}
+	return r, nil
+}
+
 func luaFindRule(ss *setting) lua.LGFunction {
 	return func(L *lua.LState) int {
 		path := L.ToString(1)
@@ -103,56 +126,6 @@ func luaFindRule(ss *setting) lua.LGFunction {
 		if rule == nil {
 			return 0
 		}
-		if rule.FileMove == "move" || rule.FileMove == "copy" {
-			proj := L.ToTable(2)
-			if proj == nil {
-				L.RaiseError("findrule でプロジェクトデータが渡されていません")
-			}
-			if lua.LVAsNumber(proj.RawGetString("gcmzapiver")) < 1 {
-				L.RaiseError("`filemove = %q` を使うためには ごちゃまぜドロップス v0.3.13 以降が必要です", ss.FileMove)
-			}
-			projfile := lua.LVAsString(proj.RawGetString("projectfile"))
-			if projfile == "" {
-				L.RaiseError("`filemove = %q` を使うためには AviUtl のプロジェクトファイルを保存してください", ss.FileMove)
-			}
-			newpath := filepath.Join(filepath.Dir(projfile), filepath.Base(path))
-			err = copyFile(newpath, path)
-			if err != nil {
-				L.RaiseError("ファイルのコピーに失敗しました: %v", err)
-			}
-			if verbose {
-				log.Println("[INFO]", "ファイルコピー", path, "->", newpath)
-			}
-			txtpath, newtxtpath := changeExt(path, ".txt"), changeExt(newpath, ".txt")
-			err = copyFile(newtxtpath, txtpath)
-			if err != nil {
-				L.RaiseError("ファイルのコピーに失敗しました: %v", err)
-			}
-			if verbose {
-				log.Println("[INFO]", "ファイルコピー", txtpath, "->", newtxtpath)
-			}
-			switch ss.FileMove {
-			case "copy":
-				log.Println("  filemove の設定に従い wav と txt をプロジェクトファイルと同じ場所にコピーしました")
-			case "move":
-				err = os.Remove(path)
-				if err != nil {
-					L.RaiseError("移動元のファイル %q が削除できません: %v", path, err)
-				}
-				if verbose {
-					log.Println("[INFO]", "ファイル削除:", path)
-				}
-				err = os.Remove(txtpath)
-				if err != nil {
-					L.RaiseError("移動元のファイル %q が削除できません: %v", txtpath, err)
-				}
-				if verbose {
-					log.Println("[INFO]", "ファイル削除:", txtpath)
-				}
-				log.Println("  filemove の設定に従い wav と txt をプロジェクトファイルと同じ場所に移動しました")
-			}
-			path = newpath
-		}
 		if rule.DeleteText {
 			textfile := changeExt(path, ".txt")
 			err = os.Remove(textfile)
@@ -160,6 +133,43 @@ func luaFindRule(ss *setting) lua.LGFunction {
 				L.RaiseError("%q が削除できません: %v", textfile, err)
 			}
 			log.Println("  deletetext の設定に従い txt を削除しました")
+		}
+		files, err := enumMoveTargetFiles(path)
+		if err != nil {
+			L.RaiseError("ファイルの列挙に失敗しました: %v", err)
+		}
+		if rule.FileMove == "move" || rule.FileMove == "copy" {
+			if ss.projectDir == "" {
+				L.RaiseError("`filemove = %q` を使うためには ごちゃまぜドロップス v0.3.13 以降を導入し、AviUtl のプロジェクトファイルを保存しておく必要があります", ss.FileMove)
+			}
+			dir := filepath.Dir(path)
+			for _, f := range files {
+				oldpath := filepath.Join(dir, f)
+				newpath := filepath.Join(ss.projectDir, f)
+				err = copyFile(newpath, oldpath)
+				if err != nil {
+					L.RaiseError("ファイルのコピーに失敗しました: %v", err)
+				}
+				if verbose {
+					log.Println("[INFO]", "ファイルコピー", oldpath, "->", newpath)
+				}
+				if ss.FileMove == "move" {
+					err = os.Remove(oldpath)
+					if err != nil {
+						L.RaiseError("移動元のファイル %q が削除できません: %v", oldpath, err)
+					}
+					if verbose {
+						log.Println("[INFO]", "ファイル削除:", oldpath)
+					}
+				}
+			}
+			switch ss.FileMove {
+			case "copy":
+				log.Println("  filemove の設定に従い wav と txt をプロジェクトファイルと同じ場所にコピーしました")
+			case "move":
+				log.Println("  filemove の設定に従い wav と txt をプロジェクトファイルと同じ場所に移動しました")
+			}
+			path = filepath.Join(ss.projectDir, filepath.Base(path))
 		}
 		layer := rule.Layer
 		padding := lua.LValue(lua.LNumber(rule.Padding))
@@ -198,16 +208,18 @@ func luaFindRule(ss *setting) lua.LGFunction {
 			luafile = L2.GetGlobal("luafile")
 
 			if newfilename := L2.GetGlobal("filename").String(); filename != newfilename {
-				newpath := filepath.Join(filepath.Dir(path), newfilename)
-				if err = os.Rename(path, newpath); err != nil {
-					L.RaiseError("ファイル名の変更に失敗しました: %v", err)
-				}
-				if !ss.DeleteText {
-					if err = os.Rename(changeExt(path, ".txt"), changeExt(newpath, ".txt")); err != nil {
+				dir := filepath.Dir(path)
+				for _, f := range files {
+					oldpath := filepath.Join(dir, f)
+					newpath := filepath.Join(dir, changeExt(newfilename, filepath.Ext(f)))
+					if err = os.Rename(oldpath, newpath); err != nil {
 						L.RaiseError("ファイル名の変更に失敗しました: %v", err)
 					}
+					if verbose {
+						log.Println("[INFO]", "ファイル名変更:", oldpath, "->", newpath)
+					}
 				}
-				path = newpath
+				path = filepath.Join(dir, newfilename)
 			}
 		}
 

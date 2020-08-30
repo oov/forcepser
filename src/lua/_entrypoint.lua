@@ -7,7 +7,7 @@ function changed(files, trycount, proj)
     else
       debug_print(file .. " " .. (trycount[i]+1) .. "回目")
     end
-    local rule, text, outfile = findrule(file, proj)
+    local rule, text, outfile = findrule(file)
     if rule ~= nil then
       debug_print_verbose("ルールに一致: " .. rule.file .. " / 挿入先レイヤー: " .. rule.layer)
       local ok, err = pcall(drop, proj, outfile, text, rule)
