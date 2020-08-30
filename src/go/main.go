@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -104,7 +105,7 @@ func processFiles(L *lua.LState, files []file, recentChanged map[string]int, rec
 	return
 }
 
-func watch(watcher *fsnotify.Watcher, notify chan<- map[string]struct{}, abort <-chan struct{}, settingFile string, freshness float64) {
+func watch(ctx context.Context, watcher *fsnotify.Watcher, notify chan<- map[string]struct{}, settingFile string, freshness float64) {
 	defer close(notify)
 	var finish bool
 	changed := map[string]struct{}{}
@@ -112,6 +113,8 @@ func watch(watcher *fsnotify.Watcher, notify chan<- map[string]struct{}, abort <
 	timer.Stop()
 	for {
 		select {
+		case <-ctx.Done():
+			return
 		case event := <-watcher.Events:
 			if verbose {
 				log.Println("[INFO]", "イベント検証:", event)
@@ -166,8 +169,6 @@ func watch(watcher *fsnotify.Watcher, notify chan<- map[string]struct{}, abort <
 			}
 			notify <- changed
 			changed = map[string]struct{}{}
-		case <-abort:
-			break
 		}
 	}
 }
@@ -286,8 +287,9 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 		log.Println("  [警告] 監視対象のフォルダーがひとつもありません")
 	}
 	notify := make(chan map[string]struct{}, 32)
-	abort := make(chan struct{})
-	go watch(watcher, notify, abort, settingFile, setting.Freshness)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go watch(ctx, watcher, notify, settingFile, setting.Freshness)
 	for files := range notify {
 		if files == nil {
 			log.Println()
