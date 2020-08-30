@@ -13,6 +13,7 @@ function changed(files, trycount, proj)
       local ok, err = pcall(drop, proj, outfile, text, rule)
       if ok then
         table.insert(success, file)
+        table.insert(success, outfile)
         debug_print("  レイヤー " .. rule.layer .. " へドロップしました")
       else
         debug_print("  処理中にエラーが発生しました: " .. err)
