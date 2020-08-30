@@ -155,33 +155,37 @@ func luaFindRule(ss *setting) lua.LGFunction {
 				L.RaiseError("`filemove = %q` を使うためには ごちゃまぜドロップス v0.3.13 以降を導入し、AviUtl のプロジェクトファイルを保存しておく必要があります", ss.FileMove)
 			}
 			dir := filepath.Dir(path)
-			deleteFiles := []string{}
-			for _, f := range files {
-				oldpath := filepath.Join(dir, f)
-				newpath := filepath.Join(ss.projectDir, f)
-				err = copyFile(newpath, oldpath)
-				if err != nil {
-					L.RaiseError("ファイルのコピーに失敗しました: %v", err)
+			if dir != ss.projectDir {
+				deleteFiles := []string{}
+				for _, f := range files {
+					oldpath := filepath.Join(dir, f)
+					newpath := filepath.Join(ss.projectDir, f)
+					err = copyFile(newpath, oldpath)
+					if err != nil {
+						L.RaiseError("ファイルのコピーに失敗しました: %v", err)
+					}
+					if verbose {
+						log.Println("[INFO]", "ファイルコピー", oldpath, "->", newpath)
+					}
+					if ss.FileMove == "move" {
+						deleteFiles = append(deleteFiles, oldpath)
+					}
 				}
-				if verbose {
-					log.Println("[INFO]", "ファイルコピー", oldpath, "->", newpath)
+				if ss.MoveDelay > 0 {
+					go delayRemove(deleteFiles, ss.MoveDelay)
+				} else {
+					delayRemove(deleteFiles, 0)
 				}
-				if ss.FileMove == "move" {
-					deleteFiles = append(deleteFiles, oldpath)
+				switch ss.FileMove {
+				case "copy":
+					log.Println("  filemove = \"copy\" の設定に従い wav と txt をプロジェクトファイルと同じ場所にコピーしました")
+				case "move":
+					log.Println("  filemove = \"move\" の設定に従い wav と txt をプロジェクトファイルと同じ場所に移動しました")
 				}
-			}
-			if ss.MoveDelay > 0 {
-				go delayRemove(deleteFiles, ss.MoveDelay)
+				path = filepath.Join(ss.projectDir, filepath.Base(path))
 			} else {
-				delayRemove(deleteFiles, 0)
+				log.Println("  移動元と移動先が同じなので filemove = \"off\" として処理します")
 			}
-			switch ss.FileMove {
-			case "copy":
-				log.Println("  filemove = \"copy\" の設定に従い wav と txt をプロジェクトファイルと同じ場所にコピーしました")
-			case "move":
-				log.Println("  filemove = \"move\" の設定に従い wav と txt をプロジェクトファイルと同じ場所に移動しました")
-			}
-			path = filepath.Join(ss.projectDir, filepath.Base(path))
 		}
 		layer := rule.Layer
 		padding := lua.LValue(lua.LNumber(rule.Padding))
