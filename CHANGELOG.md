@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1beta23 2020-08-31
+
+- OSや環境に依存するフォルダーの場所を示す環境変数を追加
+  - `%PROFILE%` - `C:\Users\YourName`
+  - `%DESKTOP%` - `C:\Users\YourName\Desktop`
+  - `%MYDOC%` - `C:\Users\YourName\Documents`
+- modifier でのリネーム対象を `*.wav` `*.txt` だけでなく、あらゆる拡張子が対象になるように変更
+  - ディレクトリ内のファイルを列挙する必要があるため負荷が上がるが、12000個ぐらいでは問題なさそうだった
+- `filemove` が `move` や `copy` でも同じ場所が対象の場合は `off`として処理するように改善
+- `movedelay` オプションをグローバルと `[[rule]]` セクションに追加
+  - `filemove = "move"` の処理はコピー＆削除で実現しており、その削除を遅延させる時間、デフォルトで0秒
+- たまに AviUtl がデッドロック状態になってしまうことがあったのを修正
+
 ## 0.1beta22 2020-08-30
 
 - `[[asas]]` の `folder` と `[[rule]]` の `dir` で `%PROJECTDIR%` を利用可能にした
