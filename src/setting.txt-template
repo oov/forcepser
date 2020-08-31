@@ -48,6 +48,13 @@ deletetext = true
 #exe = 'C:\Program Files (x86)\AHS\VOICEROID+\KiritanEX\VOICEROID.exe'
 #format = 'きりたん_*.wav'
 
+# ◆ 例: VoiceroidUtil を連動起動
+# VoiceroidUtil 自体は音声ファイルの保存時に「名前を付けて保存」のダイアログを使用しないため、ダイアログの自動処理機能は無効にしておきます。
+# また、VoiceroidUtil を使う場合は VOICEROID2 や VOICEROID+ EX の連動起動は使用しないでください。
+#[[asas]]
+#exe = 'C:\Users\YourName\Documents\VoiceroidUtil\VoiceroidUtil.exe'
+#flags = 0
+
 # ◆ 例: CeVIO Creative Studio を連動起動
 # ソフト上で右クリックメニューから `WAV書き出し` を選ぶと `00_さとうささら_こんにちは.wav` のようなデフォルトファイル名で「名前を付けて保存」のダイアログを自動処理します。  
 # 保存先はかんしくんと同じ場所にある `tmp` フォルダーです。
@@ -98,6 +105,21 @@ deletetext = true
 #encoding = 'sjis'
 #file = 'きりたん_*.wav'
 #layer = 1
+#modifier = '''
+#  text = re.gsub(text, "＜＜(.*?)｜.*?＞＞", "${1}") -- ルビを除去
+#  filename = os.date("%y%m%d_%H%M%S") .. "_きりたん_" .. tofilename(text, 10) .. ".wav"
+#'''
+
+# ◆ VoiceroidUtil の振り分け設定
+# ドキュメントフォルダー内にある「VoiceroidWaveFiles」フォルダーに「201231_235959_東北きりたん_こんにちは.wav」のような名前のファイルが作成されたとき
+# テキストからルビタグを除去し、
+# AviUtl のプロジェクトファイルと同じ場所に *.wav を移動して、ファイル名を「201231_235959_きりたん_こんにちは.wav」に変更してレイヤー1に投げ込む
+#[[rule]]
+#encoding = 'sjis'
+#dir = '%MYDOC%\VoiceroidWaveFiles'
+#file = '*_東北きりたん_*.wav'
+#layer = 1
+#movedelay = 3.0
 #modifier = '''
 #  text = re.gsub(text, "＜＜(.*?)｜.*?＞＞", "${1}") -- ルビを除去
 #  filename = os.date("%y%m%d_%H%M%S") .. "_きりたん_" .. tofilename(text, 10) .. ".wav"
