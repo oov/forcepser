@@ -65,7 +65,7 @@ func luaExecute(path string, text string) lua.LGFunction {
 func luaReplaceEnv(ss *setting) lua.LGFunction {
 	return func(L *lua.LState) int {
 		path := L.ToString(1)
-		path = strings.NewReplacer("%BASEDIR%", ss.BaseDir, "%TEMPDIR%", ss.tempDir, "%PROJECTDIR%", ss.projectDir).Replace(path)
+		path = ss.dirReplacer.Replace(path)
 		L.Push(lua.LString(path))
 		return 1
 	}

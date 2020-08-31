@@ -5,11 +5,11 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strconv"
 	"syscall"
 	"unicode/utf16"
 	"unsafe"
-	"runtime"
 
 	lua "github.com/yuin/gopher-lua"
 	"golang.org/x/sys/windows"
@@ -17,11 +17,13 @@ import (
 
 var modKernel32 = windows.NewLazySystemDLL("kernel32.dll")
 var modUser32 = windows.NewLazySystemDLL("user32.dll")
+var modShell32 = windows.NewLazySystemDLL("shell32.dll")
 
 var procOpenFileMappingW = modKernel32.NewProc("OpenFileMappingW")
 var procGetConsoleWindow = modKernel32.NewProc("GetConsoleWindow")
 var procSendMessageW = modUser32.NewProc("SendMessageW")
 var procSetForegroundWindow = modUser32.NewProc("SetForegroundWindow")
+var procSHGetSpecialFolderPath = modShell32.NewProc("SHGetSpecialFolderPathW")
 
 func openFileMapping(desiredAccess uint32, inheritHandle uint32, name *uint16) (handle windows.Handle, err error) {
 	r0, _, e1 := syscall.Syscall(procOpenFileMappingW.Addr(), 3, uintptr(desiredAccess), uintptr(inheritHandle), uintptr(unsafe.Pointer(name)))
@@ -50,6 +52,29 @@ func sendMessage(hwnd windows.Handle, uMsg uint32, wParam uintptr, lParam uintpt
 
 func setForegroundWindow(hwnd windows.Handle) bool {
 	r0, _, _ := syscall.Syscall(procSetForegroundWindow.Addr(), 1, uintptr(hwnd), 0, 0)
+	return r0 != 0
+}
+
+const (
+	CSIDL_DESKTOP  = 0x00
+	CSIDL_PERSONAL = 0x05
+	CSIDL_PROFILE  = 0x28
+)
+
+func getSpecialFolderPath(csidl uintptr) string {
+	var s [260]uint16
+	if !shGetSpecialFolderPath(getConsoleWindow(), &s[0], csidl, false) {
+		return ""
+	}
+	return windows.UTF16ToString(s[:])
+}
+
+func shGetSpecialFolderPath(hwnd windows.Handle, path *uint16, csidl uintptr, fCreate bool) bool {
+	var b uintptr
+	if fCreate {
+		b = 1
+	}
+	r0, _, _ := syscall.Syscall6(procSHGetSpecialFolderPath.Addr(), 4, uintptr(hwnd), uintptr(unsafe.Pointer(path)), csidl, b, 0, 0)
 	return r0 != 0
 }
 

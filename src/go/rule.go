@@ -53,8 +53,8 @@ type setting struct {
 	Rule       []rule
 	Asas       []asas
 
-	tempDir    string
-	projectDir string
+	projectDir  string
+	dirReplacer *strings.Replacer
 }
 
 func makeWildcard(s string) (*regexp.Regexp, error) {
@@ -89,10 +89,8 @@ func newSetting(path string, tempDir string, projectDir string) (*setting, error
 		return nil, fmt.Errorf("could not read setting file: %w", err)
 	}
 	var s setting
-	s.tempDir = tempDir
 	s.projectDir = projectDir
 	s.BaseDir = getString("basedir", config, "")
-
 	s.Delta = getFloat64("delta", config, 15.0)
 	s.Freshness = getFloat64("freshness", config, 5.0)
 	s.MoveDelay = getFloat64("movedelay", config, 0)
@@ -109,12 +107,19 @@ func newSetting(path string, tempDir string, projectDir string) (*setting, error
 	}
 	s.DeleteText = getBool("deletetext", config, false)
 
-	dirReplacer := strings.NewReplacer("%BASEDIR%", s.BaseDir, "%TEMPDIR%", s.tempDir, "%PROJECTDIR%", s.projectDir)
+	s.dirReplacer = strings.NewReplacer(
+		"%BASEDIR%", s.BaseDir,
+		"%TEMPDIR%", tempDir,
+		"%PROJECTDIR%", s.projectDir,
+		"%PROFILE%", getSpecialFolderPath(CSIDL_PROFILE),
+		"%DESKTOP%", getSpecialFolderPath(CSIDL_DESKTOP),
+		"%MYDOC%", getSpecialFolderPath(CSIDL_PERSONAL),
+	)
 
 	for _, tr := range getSubTreeArray("rule", config) {
 		var r rule
 		r.Dir = getString("dir", tr, "%TEMPDIR%")
-		r.Dir = dirReplacer.Replace(r.Dir)
+		r.Dir = s.dirReplacer.Replace(r.Dir)
 
 		r.Encoding = getString("encoding", tr, "sjis")
 
@@ -167,7 +172,7 @@ func newSetting(path string, tempDir string, projectDir string) (*setting, error
 		a.Filter = getString("filter", tr, "*.wav")
 
 		a.Folder = getString("folder", tr, "%TEMPDIR%")
-		a.Folder = dirReplacer.Replace(a.Folder)
+		a.Folder = s.dirReplacer.Replace(a.Folder)
 
 		name := filepath.Base(a.Exe)
 		formatDef := name[:len(name)-len(filepath.Ext(name))] + "_*.wav"

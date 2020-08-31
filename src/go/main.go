@@ -224,8 +224,11 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 
 	log.Println("  環境変数:")
 	log.Println("    %BASEDIR%:", setting.BaseDir)
-	log.Println("    %TEMPDIR%:", setting.tempDir)
+	log.Println("    %TEMPDIR%:", tempDir)
 	log.Println("    %PROJECTDIR%:", setting.projectDir)
+	log.Println("    %PROFILE%", getSpecialFolderPath(CSIDL_PROFILE))
+	log.Println("    %DESKTOP%", getSpecialFolderPath(CSIDL_DESKTOP))
+	log.Println("    %MYDOC%", getSpecialFolderPath(CSIDL_PERSONAL))
 	log.Println()
 
 	L := lua.NewState()
