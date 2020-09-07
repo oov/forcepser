@@ -1,3 +1,18 @@
+local function finddrop(file, proj, success)
+  getaudioinfo(file)
+  local rule, text, outfile = findrule(file)
+  if rule == nil then
+    debug_print("  一致するルールが見つかりませんでした")
+    table.insert(success, file)
+    return
+  end
+  debug_print_verbose("ルールに一致: " .. rule.file .. " / 挿入先レイヤー: " .. rule.layer)
+  drop(proj, outfile, text, rule)
+  table.insert(success, file)
+  table.insert(success, outfile)
+  debug_print("  レイヤー " .. rule.layer .. " へドロップしました")
+end
+
 -- ファイルに変更があったときに呼ばれる関数
 function changed(files, trycount, proj)
   local success = {}
@@ -7,20 +22,9 @@ function changed(files, trycount, proj)
     else
       debug_print(file .. " " .. (trycount[i]+1) .. "回目")
     end
-    local rule, text, outfile = findrule(file)
-    if rule ~= nil then
-      debug_print_verbose("ルールに一致: " .. rule.file .. " / 挿入先レイヤー: " .. rule.layer)
-      local ok, err = pcall(drop, proj, outfile, text, rule)
-      if ok then
-        table.insert(success, file)
-        table.insert(success, outfile)
-        debug_print("  レイヤー " .. rule.layer .. " へドロップしました")
-      else
-        debug_print("  処理中にエラーが発生しました: " .. err)
-      end
-    else
-      debug_print("  一致するルールが見つかりませんでした")
-      table.insert(success, file)
+    local ok, err = pcall(finddrop, file, proj, success)
+    if not ok then
+      debug_print("  処理中にエラーが発生しました: " .. err)
     end
   end
   return success
