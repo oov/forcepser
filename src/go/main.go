@@ -204,7 +204,7 @@ func watch(ctx context.Context, watcher *fsnotify.Watcher, notify chan<- map[str
 	}
 }
 
-func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[string]int, recentSent map[string]time.Time, timer *time.Timer, loop int) error {
+func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[string]int, recentSent map[string]time.Time, loop int) error {
 	exePath, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("exe ファイルのパスが取得できません: %w", err)
@@ -401,7 +401,10 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 			log.Println("ファイルの処理中にエラーが発生しました:", err)
 		}
 		if needRetry {
-			timer.Reset(500 * time.Millisecond)
+			go func(){
+				time.Sleep(500 * time.Millisecond)
+				notify <- map[string]struct{}{}
+			}()
 		}
 	}
 	return nil
@@ -452,10 +455,8 @@ func main() {
 
 	recentChanged := map[string]int{}
 	recentSent := map[string]time.Time{}
-	timer := time.NewTimer(100 * time.Millisecond)
-	timer.Stop()
 	for i := 0; ; i++ {
-		err = process(watcher, settingFile, recentChanged, recentSent, timer, i)
+		err = process(watcher, settingFile, recentChanged, recentSent, i)
 		if err != nil {
 			log.Println(err)
 			log.Println("3秒後にリトライします")
