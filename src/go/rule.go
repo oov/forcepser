@@ -32,12 +32,21 @@ type rule struct {
 	DeleteText bool
 	Padding    int
 
-	fileRE *regexp.Regexp
-	textRE *regexp.Regexp
+	fileRE      *regexp.Regexp
+	textRE      *regexp.Regexp
+	dirReplacer *strings.Replacer
+}
+
+func (r *rule) ExpandedDir() string {
+	return r.dirReplacer.Replace(r.Dir)
+}
+
+func (r *rule) ExpandedDestDir() string {
+	return r.dirReplacer.Replace(r.DestDir)
 }
 
 func (r *rule) ExistsDir() bool {
-	_, err := os.Stat(r.Dir)
+	_, err := os.Stat(r.ExpandedDir())
 	return err == nil
 }
 
@@ -121,8 +130,9 @@ func newSetting(path string, tempDir string, projectDir string) (*setting, error
 
 	for _, tr := range getSubTreeArray("rule", config) {
 		var r rule
+		r.dirReplacer = s.dirReplacer
+
 		r.Dir = getString("dir", tr, "%TEMPDIR%")
-		r.Dir = s.dirReplacer.Replace(r.Dir)
 
 		r.Encoding = getString("encoding", tr, "sjis")
 
@@ -156,7 +166,6 @@ func newSetting(path string, tempDir string, projectDir string) (*setting, error
 			r.FileMove = s.FileMove
 		}
 		r.DestDir = getString("destdir", tr, s.DestDir)
-		r.DestDir = s.dirReplacer.Replace(r.DestDir)
 		r.MoveDelay = getFloat64("movedelay", tr, s.MoveDelay)
 		r.LuaFile = getString("luafile", tr, s.LuaFile)
 		r.Padding = getInt("padding", tr, s.Padding)
@@ -166,6 +175,7 @@ func newSetting(path string, tempDir string, projectDir string) (*setting, error
 
 	for _, tr := range getSubTreeArray("asas", config) {
 		var a asas
+		a.dirReplacer = s.dirReplacer
 		a.Exe = getString("exe", tr, "")
 
 		flagDef := 1
@@ -177,7 +187,6 @@ func newSetting(path string, tempDir string, projectDir string) (*setting, error
 		a.Filter = getString("filter", tr, "*.wav")
 
 		a.Folder = getString("folder", tr, "%TEMPDIR%")
-		a.Folder = s.dirReplacer.Replace(a.Folder)
 
 		name := filepath.Base(a.Exe)
 		formatDef := name[:len(name)-len(filepath.Ext(name))] + "_*.wav"
@@ -209,10 +218,10 @@ func (ss *setting) Find(path string) (*rule, string, error) {
 			log.Println("[INFO] ", i, "番目のルールを検証中...")
 		}
 		r := &ss.Rule[i]
-		if dir != r.Dir {
+		if dir != r.ExpandedDir() {
 			if verbose {
 				log.Println("[INFO]   フォルダーのパスが一致しません")
-				log.Println("[INFO]     want:", r.Dir)
+				log.Println("[INFO]     want:", r.ExpandedDir())
 				log.Println("[INFO]     got:", dir)
 			}
 			continue
@@ -348,7 +357,7 @@ func (ss *setting) Dirs() []string {
 	dirs := map[string]struct{}{}
 	for i := range ss.Rule {
 		if ss.Rule[i].ExistsDir() {
-			dirs[ss.Rule[i].Dir] = struct{}{}
+			dirs[ss.Rule[i].ExpandedDir()] = struct{}{}
 		}
 	}
 	r := make([]string, 0, len(dirs))

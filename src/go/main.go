@@ -265,7 +265,7 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 		log.Printf("  Asas %d:", i+1)
 		log.Println("    対象EXE:", a.Exe)
 		log.Println("    フィルター:", a.Filter)
-		log.Println("    保存先フォルダー:", a.Folder)
+		log.Println("    保存先フォルダー:", a.ExpandedFolder())
 		log.Println("    フォーマット:", a.Format)
 		log.Println("    フラグ:", a.Flags)
 		if a.Exists() {
@@ -279,7 +279,7 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 	log.Println()
 	for i, r := range setting.Rule {
 		log.Printf("  ルール%d:", i+1)
-		log.Println("    対象フォルダー:", r.Dir)
+		log.Println("    対象フォルダー:", r.ExpandedDir())
 		log.Println("    対象ファイル名:", r.File)
 		log.Println("    テキストファイルの文字コード:", r.Encoding)
 		if r.textRE != nil {
@@ -401,7 +401,7 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 			log.Println("ファイルの処理中にエラーが発生しました:", err)
 		}
 		if needRetry {
-			go func(){
+			go func() {
 				time.Sleep(500 * time.Millisecond)
 				notify <- map[string]struct{}{}
 			}()

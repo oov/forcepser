@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"strconv"
 	"unsafe"
+	"strings"
 
 	"golang.org/x/sys/windows"
 )
@@ -20,6 +21,12 @@ type asas struct {
 	Filter string
 	Format string
 	Flags  int
+
+	dirReplacer *strings.Replacer
+}
+
+func (a *asas) ExpandedFolder() string {
+	return a.dirReplacer.Replace(a.Folder)
 }
 
 func (a *asas) getASASName() (string, error) {
@@ -97,7 +104,7 @@ func (a *asas) UpdateRunning() (bool, error) {
 	if err = writeStr(m[8:], a.Filter); err != nil {
 		return false, err
 	}
-	if err = writeStr(m[8+windows.MAX_PATH*2:], a.Folder); err != nil {
+	if err = writeStr(m[8+windows.MAX_PATH*2:], a.ExpandedFolder()); err != nil {
 		return false, err
 	}
 	if err = writeStr(m[8+windows.MAX_PATH*2*2:], a.Format); err != nil {
@@ -156,7 +163,7 @@ func (a *asas) Run() (bool, error) {
 	cmd.Env = append(os.Environ(),
 		"ASAS="+asasName,
 		"ASAS_FILTER="+a.Filter,
-		"ASAS_FOLDER="+a.Folder,
+		"ASAS_FOLDER="+a.ExpandedFolder(),
 		"ASAS_FORMAT="+a.Format,
 		"ASAS_FLAGS="+strconv.Itoa(a.Flags),
 	)
