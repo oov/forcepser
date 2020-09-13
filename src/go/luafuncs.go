@@ -152,7 +152,14 @@ func luaFindRule(ss *setting) lua.LGFunction {
 		}
 		if rule.FileMove == "move" || rule.FileMove == "copy" {
 			if ss.projectDir == "" {
-				L.RaiseError("`filemove = %q` を使うためには ごちゃまぜドロップス v0.3.13 以降を導入し、AviUtl のプロジェクトファイルを保存しておく必要があります", ss.FileMove)
+				proj, err := readGCMZDropsData()
+				if err != nil || proj.GCMZAPIVer < 1 {
+					L.RaiseError("`filemove = %q` を使うためには ごちゃまぜドロップス v0.3.13 以降を導入した AviUtl が必要です", ss.FileMove)
+				}
+				if proj.Width == 0 {
+					L.RaiseError("`filemove = %q` を使うためには AviUtl で編集中のプロジェクトファイルが必要です", ss.FileMove)
+				}
+				L.RaiseError("`filemove = %q` を使うためには AviUtl のプロジェクトファイルを保存しておく必要があります", ss.FileMove)
 			}
 			dir := filepath.Dir(path)
 			if dir != ss.projectDir {
