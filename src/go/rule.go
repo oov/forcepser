@@ -91,6 +91,15 @@ func newSetting(path string, tempDir string, projectDir string) (*setting, error
 	var s setting
 	s.projectDir = projectDir
 	s.BaseDir = getString("basedir", config, "")
+	s.dirReplacer = strings.NewReplacer(
+		"%BASEDIR%", s.BaseDir,
+		"%TEMPDIR%", tempDir,
+		"%PROJECTDIR%", s.projectDir,
+		"%PROFILE%", getSpecialFolderPath(CSIDL_PROFILE),
+		"%DESKTOP%", getSpecialFolderPath(CSIDL_DESKTOP),
+		"%MYDOC%", getSpecialFolderPath(CSIDL_PERSONAL),
+	)
+
 	s.Delta = getFloat64("delta", config, 15.0)
 	s.Freshness = getFloat64("freshness", config, 5.0)
 	s.MoveDelay = getFloat64("movedelay", config, 0)
@@ -106,15 +115,6 @@ func newSetting(path string, tempDir string, projectDir string) (*setting, error
 		s.FileMove = "off"
 	}
 	s.DeleteText = getBool("deletetext", config, false)
-
-	s.dirReplacer = strings.NewReplacer(
-		"%BASEDIR%", s.BaseDir,
-		"%TEMPDIR%", tempDir,
-		"%PROJECTDIR%", s.projectDir,
-		"%PROFILE%", getSpecialFolderPath(CSIDL_PROFILE),
-		"%DESKTOP%", getSpecialFolderPath(CSIDL_DESKTOP),
-		"%MYDOC%", getSpecialFolderPath(CSIDL_PERSONAL),
-	)
 
 	for _, tr := range getSubTreeArray("rule", config) {
 		var r rule
