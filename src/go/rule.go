@@ -27,6 +27,7 @@ type rule struct {
 	ExoFile    string
 	LuaFile    string
 	FileMove   string
+	DestDir    string
 	MoveDelay  float64
 	DeleteText bool
 	Padding    int
@@ -45,6 +46,7 @@ type setting struct {
 	FileMove   string
 	DeleteText bool
 	Delta      float64
+	DestDir    string
 	Freshness  float64
 	MoveDelay  float64
 	ExoFile    string
@@ -114,6 +116,7 @@ func newSetting(path string, tempDir string, projectDir string) (*setting, error
 	default:
 		s.FileMove = "off"
 	}
+	s.DestDir = getString("destdir", config, "%PROJECTDIR%")
 	s.DeleteText = getBool("deletetext", config, false)
 
 	for _, tr := range getSubTreeArray("rule", config) {
@@ -152,6 +155,8 @@ func newSetting(path string, tempDir string, projectDir string) (*setting, error
 		default:
 			r.FileMove = s.FileMove
 		}
+		r.DestDir = getString("destdir", tr, s.DestDir)
+		r.DestDir = s.dirReplacer.Replace(r.DestDir)
 		r.MoveDelay = getFloat64("movedelay", tr, s.MoveDelay)
 		r.LuaFile = getString("luafile", tr, s.LuaFile)
 		r.Padding = getInt("padding", tr, s.Padding)
