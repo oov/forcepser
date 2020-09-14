@@ -152,6 +152,7 @@ func luaFindRule(ss *setting) lua.LGFunction {
 		}
 		if rule.FileMove == "move" || rule.FileMove == "copy" {
 			destDir := rule.ExpandedDestDir()
+			srcDir := filepath.Dir(path)
 			if strings.Index(rule.DestDir, "%PROJECTDIR%") != -1 && ss.projectDir == "" {
 				proj, err := readGCMZDropsData()
 				if err != nil || proj.GCMZAPIVer < 1 {
@@ -162,11 +163,18 @@ func luaFindRule(ss *setting) lua.LGFunction {
 				}
 				L.RaiseError("AviUtl のプロジェクトファイルがまだ保存されていないため処理を続行できません")
 			}
-			dir := filepath.Dir(path)
-			if dir != destDir {
+			destfi, err := getFileInfo(destDir)
+			if err != nil {
+				L.RaiseError("%s先フォルダー %q の情報取得に失敗しました: %v", rule.FileMove.Readable(), destDir, err)
+			}
+			srcfi, err := getFileInfo(srcDir)
+			if err != nil {
+				L.RaiseError("%s元フォルダー %q の情報取得に失敗しました: %v", rule.FileMove.Readable(), srcDir, err)
+			}
+			if !isSameFileInfo(destfi, srcfi) {
 				deleteFiles := []string{}
 				for _, f := range files {
-					oldpath := filepath.Join(dir, f)
+					oldpath := filepath.Join(srcDir, f)
 					newpath := filepath.Join(destDir, f)
 					err = copyFile(newpath, oldpath)
 					if err != nil {

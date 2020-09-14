@@ -25,6 +25,35 @@ var procSendMessageW = modUser32.NewProc("SendMessageW")
 var procSetForegroundWindow = modUser32.NewProc("SetForegroundWindow")
 var procSHGetSpecialFolderPath = modShell32.NewProc("SHGetSpecialFolderPathW")
 
+func getFileInfo(path string) (*windows.ByHandleFileInformation, error) {
+	name, err := windows.UTF16PtrFromString(path)
+	if err != nil {
+		return nil, err
+	}
+	fa, err := windows.GetFileAttributes(name)
+	if err != nil {
+		return nil, err
+	}
+	attr := uint32(0)
+	if fa & windows.FILE_ATTRIBUTE_DIRECTORY == windows.FILE_ATTRIBUTE_DIRECTORY {
+		attr = windows.FILE_FLAG_BACKUP_SEMANTICS
+	}
+	h, err := windows.CreateFile(name, 0, windows.FILE_SHARE_DELETE | windows.FILE_SHARE_READ | windows.FILE_SHARE_WRITE, nil, windows.OPEN_EXISTING, attr, 0)
+	if err != nil {
+		return nil, err
+	}
+	defer windows.CloseHandle(h)
+	var fi windows.ByHandleFileInformation
+	if err = windows.GetFileInformationByHandle(h, &fi); err != nil {
+		return nil, err
+	}
+	return &fi, nil
+}
+
+func isSameFileInfo(fi1 *windows.ByHandleFileInformation, fi2 *windows.ByHandleFileInformation) bool {
+	return fi1.VolumeSerialNumber == fi2.VolumeSerialNumber && fi1.FileIndexLow == fi2.FileIndexLow && fi1.FileIndexHigh == fi2.FileIndexHigh
+}
+
 func openFileMapping(desiredAccess uint32, inheritHandle uint32, name *uint16) (handle windows.Handle, err error) {
 	r0, _, e1 := syscall.Syscall(procOpenFileMappingW.Addr(), 3, uintptr(desiredAccess), uintptr(inheritHandle), uintptr(unsafe.Pointer(name)))
 	handle = windows.Handle(r0)
