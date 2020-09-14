@@ -15,6 +15,20 @@ import (
 	"golang.org/x/text/encoding/unicode"
 )
 
+type moveType string
+
+func (mt moveType) Readable() string {
+	switch mt {
+	case "off":
+		return "Off"
+	case "copy":
+		return "コピー"
+	case "move":
+		return "移動"
+	}
+	return fmt.Sprintf("無効な設定(%q)", string(mt))
+}
+
 type rule struct {
 	Dir      string
 	File     string
@@ -26,7 +40,7 @@ type rule struct {
 
 	ExoFile    string
 	LuaFile    string
-	FileMove   string
+	FileMove   moveType
 	DestDir    string
 	MoveDelay  float64
 	DeleteText bool
@@ -52,7 +66,7 @@ func (r *rule) ExistsDir() bool {
 
 type setting struct {
 	BaseDir    string
-	FileMove   string
+	FileMove   moveType
 	DeleteText bool
 	Delta      float64
 	DestDir    string
@@ -118,12 +132,12 @@ func newSetting(path string, tempDir string, projectDir string) (*setting, error
 	s.ExoFile = getString("exofile", config, "template.exo")
 	s.LuaFile = getString("luafile", config, "genexo.lua")
 
-	s.FileMove = getString("filemove", config, "off")
-	switch s.FileMove {
+	switch fm := getString("filemove", config, "off"); fm {
 	case "off", "copy", "move":
+		s.FileMove = moveType(fm)
 		break
 	default:
-		s.FileMove = "off"
+		s.FileMove = moveType("off")
 	}
 	s.DestDir = getString("destdir", config, "%PROJECTDIR%")
 	s.DeleteText = getBool("deletetext", config, false)
@@ -158,9 +172,9 @@ func newSetting(path string, tempDir string, projectDir string) (*setting, error
 
 		r.DeleteText = getBool("deletetext", tr, s.DeleteText)
 		r.ExoFile = getString("exofile", tr, s.ExoFile)
-		r.FileMove = getString("filemove", tr, s.FileMove)
-		switch s.FileMove {
+		switch fm := getString("filemove", tr, string(s.FileMove)); fm {
 		case "off", "copy", "move":
+			r.FileMove = moveType(fm)
 			break
 		default:
 			r.FileMove = s.FileMove

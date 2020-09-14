@@ -151,22 +151,23 @@ func luaFindRule(ss *setting) lua.LGFunction {
 			L.RaiseError("ファイルの列挙に失敗しました: %v", err)
 		}
 		if rule.FileMove == "move" || rule.FileMove == "copy" {
-			if ss.projectDir == "" {
+			destDir := rule.ExpandedDestDir()
+			if strings.Index(rule.DestDir, "%PROJECTDIR%") != -1 && ss.projectDir == "" {
 				proj, err := readGCMZDropsData()
 				if err != nil || proj.GCMZAPIVer < 1 {
-					L.RaiseError("`filemove = %q` を使うためには ごちゃまぜドロップス v0.3.13 以降を導入した AviUtl が必要です", ss.FileMove)
+					L.RaiseError("ごちゃまぜドロップス v0.3.13 以降を導入した AviUtl が見つかりません")
 				}
 				if proj.Width == 0 {
-					L.RaiseError("`filemove = %q` を使うためには AviUtl で編集中のプロジェクトファイルが必要です", ss.FileMove)
+					L.RaiseError("`AviUtl で編集中のプロジェクトファイルが見つかりません")
 				}
-				L.RaiseError("`filemove = %q` を使うためには AviUtl のプロジェクトファイルを保存しておく必要があります", ss.FileMove)
+				L.RaiseError("AviUtl のプロジェクトファイルがまだ保存されていないため処理を続行できません")
 			}
 			dir := filepath.Dir(path)
-			if dir != ss.projectDir {
+			if dir != destDir {
 				deleteFiles := []string{}
 				for _, f := range files {
 					oldpath := filepath.Join(dir, f)
-					newpath := filepath.Join(ss.projectDir, f)
+					newpath := filepath.Join(destDir, f)
 					err = copyFile(newpath, oldpath)
 					if err != nil {
 						L.RaiseError("ファイルのコピーに失敗しました: %v", err)
@@ -174,7 +175,7 @@ func luaFindRule(ss *setting) lua.LGFunction {
 					if verbose {
 						log.Println("[INFO]", "ファイルコピー", oldpath, "->", newpath)
 					}
-					if ss.FileMove == "move" {
+					if rule.FileMove == "move" {
 						deleteFiles = append(deleteFiles, oldpath)
 					}
 				}
@@ -183,15 +184,9 @@ func luaFindRule(ss *setting) lua.LGFunction {
 				} else {
 					delayRemove(deleteFiles, 0)
 				}
-				switch ss.FileMove {
-				case "copy":
-					log.Println("  filemove = \"copy\" の設定に従い wav と txt をプロジェクトファイルと同じ場所にコピーしました")
-				case "move":
-					log.Println("  filemove = \"move\" の設定に従い wav と txt をプロジェクトファイルと同じ場所に移動しました")
-				}
-				path = filepath.Join(ss.projectDir, filepath.Base(path))
-			} else {
-				log.Println("  移動元と移動先が同じなので filemove = \"off\" として処理します")
+				log.Printf("  filemove = \"%s\" の設定に従い、ファイルを以下の場所に%sしました\n", rule.FileMove, rule.FileMove.Readable())
+				log.Println("    ", destDir)
+				path = filepath.Join(destDir, filepath.Base(path))
 			}
 		}
 		layer := rule.Layer

@@ -295,13 +295,9 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 		log.Println("    パディング:", r.Padding)
 		log.Println("    EXOファイル:", r.ExoFile)
 		log.Println("    Luaファイル:", r.LuaFile)
-		switch r.FileMove {
-		case "off":
-			log.Println("    Waveファイルの移動: しない")
-		case "move":
-			log.Println("    Waveファイルの移動: *.aup と同じ場所に移動")
-		case "copy":
-			log.Println("    Waveファイルの移動: *.aup と同じ場所にコピー")
+		log.Println("    Waveファイルの移動:", r.FileMove.Readable())
+		if r.FileMove != "off" {
+			log.Printf("      %s先: %s\n", r.FileMove.Readable(), r.ExpandedDestDir())
 		}
 		if r.DeleteText {
 			log.Println("    テキストファイルの削除: する")
