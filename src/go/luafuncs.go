@@ -50,7 +50,7 @@ func luaExecute(path string, text string) lua.LGFunction {
 			defer f.Close()
 			f2, err := os.Create(path)
 			if err != nil {
-				L.RaiseError("ファイル %q が開けません: %v", path, err)
+				L.RaiseError("ファイル %s が開けません: %v", path, err)
 			}
 			defer f2.Close()
 			_, err = io.Copy(f2, f)
@@ -74,17 +74,17 @@ func luaReplaceEnv(ss *setting) lua.LGFunction {
 func copyFile(dst, src string) error {
 	sf, err := os.Open(src)
 	if err != nil {
-		return fmt.Errorf("コピー元ファイル %q を開けません: %w", src, err)
+		return fmt.Errorf("コピー元ファイル %s を開けません: %w", src, err)
 	}
 	defer sf.Close()
 	df, err := os.Create(dst)
 	if err != nil {
-		return fmt.Errorf("コピー先ファイル %q を開けません: %w", dst, err)
+		return fmt.Errorf("コピー先ファイル %s を開けません: %w", dst, err)
 	}
 	defer df.Close()
 	_, err = io.Copy(df, sf)
 	if err != nil {
-		return fmt.Errorf("ファイルコピー %q -> %q に失敗しました: %w", src, dst, err)
+		return fmt.Errorf("ファイルコピー %s -> %s に失敗しました: %w", src, dst, err)
 	}
 	return nil
 }
@@ -120,7 +120,7 @@ func delayRemove(files []string, delay float64) {
 	time.Sleep(time.Duration(delay) * time.Second)
 	for _, f := range files {
 		if err := os.Remove(f); err != nil {
-			log.Printf("[WARN] 移動元のファイル %q の削除に失敗しました: %v\n", f, err)
+			log.Printf("[WARN] 移動元のファイル %s の削除に失敗しました: %v\n", f, err)
 		}
 		if verbose {
 			log.Println("[INFO]", "ファイル削除:", f)
@@ -142,7 +142,7 @@ func luaFindRule(ss *setting) lua.LGFunction {
 			textfile := changeExt(path, ".txt")
 			err = os.Remove(textfile)
 			if err != nil {
-				L.RaiseError("%q が削除できません: %v", textfile, err)
+				L.RaiseError("%s が削除できません: %v", textfile, err)
 			}
 			log.Println("  deletetext の設定に従い txt を削除しました")
 		}
@@ -165,11 +165,11 @@ func luaFindRule(ss *setting) lua.LGFunction {
 			}
 			destfi, err := getFileInfo(destDir)
 			if err != nil {
-				L.RaiseError("%s先フォルダー %q の情報取得に失敗しました: %v", rule.FileMove.Readable(), destDir, err)
+				L.RaiseError("%s先フォルダー %s の情報取得に失敗しました: %v", rule.FileMove.Readable(), destDir, err)
 			}
 			srcfi, err := getFileInfo(srcDir)
 			if err != nil {
-				L.RaiseError("%s元フォルダー %q の情報取得に失敗しました: %v", rule.FileMove.Readable(), srcDir, err)
+				L.RaiseError("%s元フォルダー %s の情報取得に失敗しました: %v", rule.FileMove.Readable(), srcDir, err)
 			}
 			if !isSameFileInfo(destfi, srcfi) {
 				deleteFiles := []string{}

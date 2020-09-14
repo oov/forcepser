@@ -319,7 +319,7 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 	for _, dir := range setting.Dirs() {
 		err = watcher.Add(dir)
 		if err != nil {
-			return fmt.Errorf("フォルダー %q が監視できません: %w", dir, err)
+			return fmt.Errorf("フォルダー %s が監視できません: %w", dir, err)
 		}
 		log.Println("  " + dir)
 		watching++
