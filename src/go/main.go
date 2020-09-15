@@ -288,6 +288,7 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 	}
 
 	L.SetGlobal("debug_print", L.NewFunction(luaDebugPrint))
+	L.SetGlobal("debug_error", L.NewFunction(luaDebugError))
 	L.SetGlobal("debug_print_verbose", L.NewFunction(luaDebugPrintVerbose))
 	L.SetGlobal("sendfile", L.NewFunction(luaSendFile))
 	L.SetGlobal("findrule", L.NewFunction(luaFindRule(setting)))

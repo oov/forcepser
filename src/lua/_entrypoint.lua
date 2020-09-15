@@ -2,7 +2,7 @@ local function finddrop(file, proj, success)
   getaudioinfo(file)
   local rule, text, outfile = findrule(file)
   if rule == nil then
-    debug_print("  一致するルールが見つかりませんでした")
+    debug_error("  一致するルールが見つかりませんでした")
     table.insert(success, file)
     return
   end
@@ -24,7 +24,7 @@ function changed(files, trycount, proj)
     end
     local ok, err = pcall(finddrop, file, proj, success)
     if not ok then
-      debug_print("  処理中にエラーが発生しました: " .. err)
+      debug_error("  処理中にエラーが発生しました: " .. err)
     end
   end
   return success

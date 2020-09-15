@@ -22,6 +22,11 @@ func luaDebugPrint(L *lua.LState) int {
 	return 0
 }
 
+func luaDebugError(L *lua.LState) int {
+	log.Println(warn.Renderln(L.ToString(1)))
+	return 0
+}
+
 func luaDebugPrintVerbose(L *lua.LState) int {
 	if verbose {
 		log.Println(suppress.Renderln(L.ToString(1)))
@@ -210,6 +215,7 @@ func luaFindRule(ss *setting) lua.LGFunction {
 				L.RaiseError("modifier スクリプトの初期化中にエラーが発生しました: %v", err)
 			}
 			L2.SetGlobal("debug_print", L2.NewFunction(luaDebugPrint))
+			L2.SetGlobal("debug_error", L2.NewFunction(luaDebugError))
 			L2.SetGlobal("debug_print_verbose", L2.NewFunction(luaDebugPrintVerbose))
 			L2.SetGlobal("getaudioinfo", L2.NewFunction(luaGetAudioInfo))
 			L2.SetGlobal("execute", L2.NewFunction(luaExecute(path, text)))
