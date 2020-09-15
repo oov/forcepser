@@ -229,22 +229,22 @@ func (ss *setting) Find(path string) (*rule, string, error) {
 
 	for i := range ss.Rule {
 		if verbose {
-			log.Println("[INFO] ", i, "番目のルールを検証中...")
+			log.Println(suppress.Renderln(i, "番目のルールを検証中..."))
 		}
 		r := &ss.Rule[i]
 		if dir != r.ExpandedDir() {
 			if verbose {
-				log.Println("[INFO]   フォルダーのパスが一致しません")
-				log.Println("[INFO]     want:", r.ExpandedDir())
-				log.Println("[INFO]     got:", dir)
+				log.Println(suppress.Renderln("  フォルダーのパスが一致しません"))
+				log.Println(suppress.Renderln("    want:", r.ExpandedDir()))
+				log.Println(suppress.Renderln("    got:", dir))
 			}
 			continue
 		}
 		if !r.fileRE.MatchString(base) {
 			if verbose {
-				log.Println("[INFO]   ファイル名がワイルドカードに一致しません")
-				log.Println("[INFO]     filename:", base)
-				log.Println("[INFO]     regex:", r.fileRE)
+				log.Println(suppress.Renderln("  ファイル名がワイルドカードに一致しません"))
+				log.Println(suppress.Renderln("    filename:", base))
+				log.Println(suppress.Renderln("    regex:", r.fileRE))
 			}
 			continue
 		}
@@ -257,7 +257,7 @@ func (ss *setting) Find(path string) (*rule, string, error) {
 				}
 				if !r.textRE.MatchString(*u8) {
 					if verbose {
-						log.Println("[INFO]     テキスト内容が正規表現にマッチしませんでした")
+						log.Println(suppress.Renderln("    テキスト内容が正規表現にマッチしませんでした"))
 					}
 					continue
 				}
@@ -266,8 +266,8 @@ func (ss *setting) Find(path string) (*rule, string, error) {
 					b, err := shiftjis.NewDecoder().Bytes(textRaw)
 					if err != nil {
 						if verbose {
-							log.Println("[INFO]     Shift_JIS から UTF-8 への文字コード変換に失敗しました")
-							log.Println("[INFO]       ", err)
+							log.Println(suppress.Renderln("    Shift_JIS から UTF-8 への文字コード変換に失敗しました"))
+							log.Println(suppress.Renderln("      ", err))
 						}
 						continue
 					}
@@ -276,7 +276,7 @@ func (ss *setting) Find(path string) (*rule, string, error) {
 				}
 				if !r.textRE.MatchString(*sjis) {
 					if verbose {
-						log.Println("[INFO]     テキスト内容が正規表現にマッチしませんでした")
+						log.Println(suppress.Renderln("    テキスト内容が正規表現にマッチしませんでした"))
 					}
 					continue
 				}
@@ -285,8 +285,8 @@ func (ss *setting) Find(path string) (*rule, string, error) {
 					b, err := utf16le.NewDecoder().Bytes(textRaw)
 					if err != nil {
 						if verbose {
-							log.Println("[INFO]     UTF-16LE から UTF-8 への文字コード変換に失敗しました")
-							log.Println("[INFO]       ", err)
+							log.Println(suppress.Renderln("    UTF-16LE から UTF-8 への文字コード変換に失敗しました"))
+							log.Println(suppress.Renderln("      ", err))
 						}
 						continue
 					}
@@ -295,7 +295,7 @@ func (ss *setting) Find(path string) (*rule, string, error) {
 				}
 				if !r.textRE.MatchString(*u16le) {
 					if verbose {
-						log.Println("[INFO]     テキスト内容が正規表現にマッチしませんでした")
+						log.Println(suppress.Renderln("    テキスト内容が正規表現にマッチしませんでした"))
 					}
 					continue
 				}
@@ -304,8 +304,8 @@ func (ss *setting) Find(path string) (*rule, string, error) {
 					b, err := utf16be.NewDecoder().Bytes(textRaw)
 					if err != nil {
 						if verbose {
-							log.Println("[INFO]     UTF-16BE から UTF-8 への文字コード変換に失敗しました")
-							log.Println("[INFO]       ", err)
+							log.Println(suppress.Renderln("    UTF-16BE から UTF-8 への文字コード変換に失敗しました"))
+							log.Println(suppress.Renderln("      ", err))
 						}
 						continue
 					}
@@ -314,14 +314,14 @@ func (ss *setting) Find(path string) (*rule, string, error) {
 				}
 				if !r.textRE.MatchString(*u16be) {
 					if verbose {
-						log.Println("[INFO]     テキスト内容が正規表現にマッチしませんでした")
+						log.Println(suppress.Renderln("    テキスト内容が正規表現にマッチしませんでした"))
 					}
 					continue
 				}
 			}
 		}
 		if verbose {
-			log.Println("[INFO]   このルールに適合しました")
+			log.Println(suppress.Renderln("  このルールに適合しました"))
 		}
 		switch r.Encoding {
 		case "utf8":

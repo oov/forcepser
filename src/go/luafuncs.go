@@ -24,7 +24,7 @@ func luaDebugPrint(L *lua.LState) int {
 
 func luaDebugPrintVerbose(L *lua.LState) int {
 	if verbose {
-		log.Println("[INFO]", L.ToString(1))
+		log.Println(suppress.Renderln(L.ToString(1)))
 	}
 	return 0
 }
@@ -120,10 +120,10 @@ func delayRemove(files []string, delay float64) {
 	time.Sleep(time.Duration(delay) * time.Second)
 	for _, f := range files {
 		if err := os.Remove(f); err != nil {
-			log.Printf("[WARN] 移動元のファイル %s の削除に失敗しました: %v\n", f, err)
+			log.Println(warn.Sprintf("移動元のファイル %s の削除に失敗しました: %v", f, err))
 		}
 		if verbose {
-			log.Println("[INFO]", "ファイル削除:", f)
+			log.Println(suppress.Renderln("ファイル削除:", f))
 		}
 	}
 }
@@ -181,7 +181,7 @@ func luaFindRule(ss *setting) lua.LGFunction {
 						L.RaiseError("ファイルのコピーに失敗しました: %v", err)
 					}
 					if verbose {
-						log.Println("[INFO]", "ファイルコピー", oldpath, "->", newpath)
+						log.Println(suppress.Renderln("ファイルコピー", oldpath, "->", newpath))
 					}
 					if rule.FileMove == "move" {
 						deleteFiles = append(deleteFiles, oldpath)
@@ -242,7 +242,7 @@ func luaFindRule(ss *setting) lua.LGFunction {
 						L.RaiseError("ファイル名の変更に失敗しました: %v", err)
 					}
 					if verbose {
-						log.Println("[INFO]", "ファイル名変更:", oldpath, "->", newpath)
+						log.Println(suppress.Renderln("ファイル名変更:", oldpath, "->", newpath))
 					}
 				}
 				path = filepath.Join(dir, newfilename)

@@ -35,10 +35,10 @@ func getFileInfo(path string) (*windows.ByHandleFileInformation, error) {
 		return nil, err
 	}
 	attr := uint32(0)
-	if fa & windows.FILE_ATTRIBUTE_DIRECTORY == windows.FILE_ATTRIBUTE_DIRECTORY {
+	if fa&windows.FILE_ATTRIBUTE_DIRECTORY == windows.FILE_ATTRIBUTE_DIRECTORY {
 		attr = windows.FILE_FLAG_BACKUP_SEMANTICS
 	}
-	h, err := windows.CreateFile(name, 0, windows.FILE_SHARE_DELETE | windows.FILE_SHARE_READ | windows.FILE_SHARE_WRITE, nil, windows.OPEN_EXISTING, attr, 0)
+	h, err := windows.CreateFile(name, 0, windows.FILE_SHARE_DELETE|windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE, nil, windows.OPEN_EXISTING, attr, 0)
 	if err != nil {
 		return nil, err
 	}
