@@ -121,10 +121,28 @@ func enumMoveTargetFiles(wavpath string) ([]string, error) {
 	return r, nil
 }
 
+func retry(f func() error, max int) error {
+	var err error
+	for i := 0; i < max; i++ {
+		if err = f(); err == nil {
+			return nil
+		}
+		if verbose {
+			log.Println(suppress.Sprintf("%d回目の試行に失敗: %v", i+1, err))
+		}
+		time.Sleep(300*time.Millisecond)
+	}
+	if verbose {
+		log.Println(suppress.Renderln("リトライを諦めました"))
+	}
+	return err
+}
+
 func delayRemove(files []string, delay float64) {
 	time.Sleep(time.Duration(delay) * time.Second)
 	for _, f := range files {
-		if err := os.Remove(f); err != nil {
+		err := retry(func() error { return os.Remove(f) }, 3)
+		if err != nil {
 			log.Println(warn.Sprintf("移動元のファイル %s の削除に失敗しました: %v", f, err))
 		}
 		if verbose {
@@ -145,7 +163,7 @@ func luaFindRule(ss *setting) lua.LGFunction {
 		}
 		if rule.DeleteText {
 			textfile := changeExt(path, ".txt")
-			err = os.Remove(textfile)
+			err = retry(func() error { return os.Remove(textfile) }, 3)
 			if err != nil {
 				L.RaiseError("%s が削除できません: %v", textfile, err)
 			}
@@ -181,7 +199,7 @@ func luaFindRule(ss *setting) lua.LGFunction {
 				for _, f := range files {
 					oldpath := filepath.Join(srcDir, f)
 					newpath := filepath.Join(destDir, f)
-					err = copyFile(newpath, oldpath)
+					err = retry(func() error { return copyFile(newpath, oldpath) }, 3)
 					if err != nil {
 						L.RaiseError("ファイルのコピーに失敗しました: %v", err)
 					}
@@ -244,7 +262,8 @@ func luaFindRule(ss *setting) lua.LGFunction {
 				for _, f := range files {
 					oldpath := filepath.Join(dir, f)
 					newpath := filepath.Join(dir, changeExt(newfilename, filepath.Ext(f)))
-					if err = os.Rename(oldpath, newpath); err != nil {
+					err = retry(func() error { return os.Rename(oldpath, newpath) }, 3)
+					if err != nil {
 						L.RaiseError("ファイル名の変更に失敗しました: %v", err)
 					}
 					if verbose {
