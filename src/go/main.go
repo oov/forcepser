@@ -8,7 +8,6 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 
@@ -54,7 +53,7 @@ var (
 	suppress colorizer = color.Gray
 )
 
-func processFiles(L *lua.LState, files []file, recentChanged map[string]int, recentSent map[string]time.Time) (needRetry bool, err error) {
+func processFiles(L *lua.LState, files []file, sort string, recentChanged map[string]int, recentSent map[string]time.Time) (needRetry bool, err error) {
 	defer func() {
 		for k, ct := range recentChanged {
 			if ct == 9 {
@@ -78,14 +77,13 @@ func processFiles(L *lua.LState, files []file, recentChanged map[string]int, rec
 		err = fmt.Errorf("AviUtl で編集中のプロジェクトが見つかりません")
 		return
 	}
-	sort.Slice(files, func(i, j int) bool {
-		return files[i].ModDate.Before(files[j].ModDate)
-	})
 	t := L.NewTable()
-	tc := L.NewTable()
 	for _, f := range files {
-		t.Append(lua.LString(f.Filepath))
-		tc.Append(lua.LNumber(f.TryCount))
+		file := L.NewTable()
+		file.RawSetString("path", lua.LString(f.Filepath))
+		file.RawSetString("trycount", lua.LNumber(f.TryCount))
+		file.RawSetString("moddate", lua.LNumber(float64(f.ModDate.Unix())+(float64(f.ModDate.Nanosecond())/1e9)))
+		t.Append(file)
 	}
 	pt := L.NewTable()
 	pt.RawSetString("projectfile", lua.LString(proj.ProjectFile))
@@ -101,7 +99,7 @@ func processFiles(L *lua.LState, files []file, recentChanged map[string]int, rec
 		Fn:      L.GetGlobal("changed"),
 		NRet:    1,
 		Protect: true,
-	}, t, tc, pt); err != nil {
+	}, t, lua.LString(sort), pt); err != nil {
 		return
 	}
 	rv := L.ToTable(-1)
@@ -152,11 +150,11 @@ func watchProjectPath(ctx context.Context, notify chan<- map[string]struct{}, pr
 	}
 }
 
-func watch(ctx context.Context, watcher *fsnotify.Watcher, notify chan<- map[string]struct{}, settingFile string, freshness float64) {
+func watch(ctx context.Context, watcher *fsnotify.Watcher, notify chan<- map[string]struct{}, settingFile string, freshness float64, sortdelay float64) {
 	defer close(notify)
 	var finish bool
 	changed := map[string]struct{}{}
-	timer := time.NewTimer(100 * time.Millisecond)
+	timer := time.NewTimer(time.Duration(sortdelay) * time.Second)
 	timer.Stop()
 	for {
 		select {
@@ -206,7 +204,7 @@ func watch(ctx context.Context, watcher *fsnotify.Watcher, notify chan<- map[str
 				log.Println(suppress.Renderln("  送信ファイル候補にします"))
 			}
 			changed[event.Name[:len(event.Name)-len(ext)]+".wav"] = struct{}{}
-			timer.Reset(100 * time.Millisecond)
+			timer.Reset(time.Duration(sortdelay) * time.Second)
 		case err := <-watcher.Errors:
 			log.Println(warn.Renderln("監視中にエラーが発生しました:", err))
 		case <-timer.C:
@@ -372,7 +370,7 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go watchProjectPath(ctx, notify, projectPath)
-	go watch(ctx, watcher, notify, settingFile, setting.Freshness)
+	go watch(ctx, watcher, notify, settingFile, setting.Freshness, setting.SortDelay)
 	for files := range notify {
 		if files == nil {
 			log.Println()
@@ -432,7 +430,7 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 		if len(files) == 0 {
 			continue
 		}
-		needRetry, err := processFiles(L, files, recentChanged, recentSent)
+		needRetry, err := processFiles(L, files, setting.Sort, recentChanged, recentSent)
 		if err != nil {
 			log.Println("ファイルの処理中にエラーが発生しました:", err)
 		}

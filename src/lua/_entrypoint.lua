@@ -13,16 +13,24 @@ local function finddrop(file, proj, success)
   debug_print("  レイヤー " .. rule.layer .. " へドロップしました")
 end
 
+function sortmoddate(a, b)
+  return a.moddate < b.moddate
+end
+function sortname(a, b)
+  return a.path < b.path
+end
+
 -- ファイルに変更があったときに呼ばれる関数
-function changed(files, trycount, proj)
+function changed(files, sort, proj)
+  table.sort(files, sort == "moddate" and sortmoddate or sortname)
   local success = {}
-  for i, file in ipairs(files) do
-    if trycount[i] == 0 then
-      debug_print(file)
+  for _, file in ipairs(files) do
+    if file.trycount == 0 then
+      debug_print(file.path)
     else
-      debug_print(file .. " " .. (trycount[i]+1) .. "回目")
+      debug_print(file.path .. " " .. (file.trycount+1) .. "回目")
     end
-    local ok, err = pcall(finddrop, file, proj, success)
+    local ok, err = pcall(finddrop, file.path, proj, success)
     if not ok then
       debug_error("  処理中にエラーが発生しました: " .. err)
     end

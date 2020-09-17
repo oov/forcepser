@@ -78,6 +78,9 @@ type setting struct {
 	Rule       []rule
 	Asas       []asas
 
+	Sort      string
+	SortDelay float64
+
 	projectDir  string
 	dirReplacer *strings.Replacer
 }
@@ -141,6 +144,15 @@ func newSetting(path string, tempDir string, projectDir string) (*setting, error
 	}
 	s.DestDir = getString("destdir", config, "%PROJECTDIR%")
 	s.DeleteText = getBool("deletetext", config, false)
+
+	switch ss := getString("sort", config, "moddate"); ss {
+	case "moddate", "name":
+		s.Sort = ss
+		break
+	default:
+		s.Sort = "moddate"
+	}
+	s.SortDelay = getFloat64("sortdelay", config, 0.1)
 
 	for _, tr := range getSubTreeArray("rule", config) {
 		var r rule
