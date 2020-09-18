@@ -15,6 +15,11 @@ import (
 	"golang.org/x/text/encoding/unicode"
 )
 
+func exists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
 type moveType string
 
 func (mt moveType) Readable() string {
@@ -60,8 +65,7 @@ func (r *rule) ExpandedDestDir() string {
 }
 
 func (r *rule) ExistsDir() bool {
-	_, err := os.Stat(r.ExpandedDir())
-	return err == nil
+	return exists(r.ExpandedDir())
 }
 
 type setting struct {

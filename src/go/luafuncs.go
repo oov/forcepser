@@ -151,6 +151,25 @@ func delayRemove(files []string, delay float64) {
 	}
 }
 
+func findGoodFileName(candidate, dir string) (string, error) {
+	ext := filepath.Ext(candidate)
+	name := candidate[:len(candidate)-len(ext)]
+	prefix := filepath.Join(dir, name)
+	a := ""
+	i := 1
+	for i <= 100 {
+		if !exists(prefix + a + ext) {
+			if verbose {
+				log.Println(suppress.Renderln("名前変更案:", name+a+ext))
+			}
+			return name + a + ext, nil
+		}
+		i++
+		a = fmt.Sprintf(" (%d)", i)
+	}
+	return candidate, fmt.Errorf("%s に似た名前のファイルが多すぎます", candidate)
+}
+
 func luaFindRule(ss *setting) lua.LGFunction {
 	return func(L *lua.LState) int {
 		path := L.ToString(1)
@@ -259,6 +278,10 @@ func luaFindRule(ss *setting) lua.LGFunction {
 
 			if newfilename := L2.GetGlobal("filename").String(); filename != newfilename {
 				dir := filepath.Dir(path)
+				newfilename, err = findGoodFileName(newfilename, dir)
+				if err != nil {
+					L.RaiseError("ファイル名の候補が見つかりません: %v", err)
+				}
 				for _, f := range files {
 					oldpath := filepath.Join(dir, f)
 					newpath := filepath.Join(dir, changeExt(newfilename, filepath.Ext(f)))
