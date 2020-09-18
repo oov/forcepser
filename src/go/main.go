@@ -37,7 +37,7 @@ func (dummyColorizer) Renderln(a ...interface{}) string {
 		return ""
 	}
 	if len(a) == 1 {
-		return fmt.Sprint(a)
+		return fmt.Sprint(a...)
 	}
 	r := fmt.Sprintln(a...)
 	return r[:len(r)-1]
