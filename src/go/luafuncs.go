@@ -130,7 +130,7 @@ func retry(f func() error, max int) error {
 		if verbose {
 			log.Println(suppress.Sprintf("%d回目の試行に失敗: %v", i+1, err))
 		}
-		time.Sleep(300*time.Millisecond)
+		time.Sleep(300 * time.Millisecond)
 	}
 	if verbose {
 		log.Println(suppress.Renderln("リトライを諦めました"))
