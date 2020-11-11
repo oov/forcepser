@@ -73,9 +73,12 @@ func getConsoleWindow() (handle windows.Handle) {
 	return
 }
 
-func sendMessage(hwnd windows.Handle, uMsg uint32, wParam uintptr, lParam uintptr) (lResult uintptr) {
-	r0, _, _ := syscall.Syscall6(procSendMessageW.Addr(), 4, uintptr(hwnd), uintptr(uMsg), uintptr(wParam), uintptr(lParam), 0, 0)
+func sendMessage(hwnd windows.Handle, uMsg uint32, wParam uintptr, lParam uintptr) (lResult uintptr, err error) {
+	r0, _, e1 := syscall.Syscall6(procSendMessageW.Addr(), 4, uintptr(hwnd), uintptr(uMsg), uintptr(wParam), uintptr(lParam), 0, 0)
 	lResult = uintptr(r0)
+	if e1 != 0 {
+		err = e1
+	}
 	return
 }
 
@@ -210,6 +213,8 @@ func luaSendFile(L *lua.LState) int {
 		Size: uint32(len(str) * 2),
 		Ptr:  uintptr(unsafe.Pointer(&str[0])),
 	}
-	sendMessage(windows.Handle(window), wmCopyData, uintptr(getConsoleWindow()), uintptr(unsafe.Pointer(cds)))
+	if _, err := sendMessage(windows.Handle(window), wmCopyData, uintptr(getConsoleWindow()), uintptr(unsafe.Pointer(cds))); err != nil {
+		L.RaiseError("ごちゃまぜドロップスの外部連携API呼び出しに失敗しました: %v", err)
+	}
 	return 0
 }
