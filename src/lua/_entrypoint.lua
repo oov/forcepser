@@ -226,6 +226,7 @@ function drop(proj, file, text, rule)
   if exo == nil then
     exo, length = genexo(proj, file, text, rule)
   end
+  os.remove("temp.exo")
   f, err = io.open("temp.exo", "wb")
   if f == nil then
     error("exo ファイルが作成できません: " .. err)
