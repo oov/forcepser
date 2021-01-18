@@ -5,6 +5,10 @@
 
 動作確認は AviUtl version 1.10 / 拡張編集 version 0.92 / ごちゃまぜドロップス v0.3.13 で行っています。
 
+使い方の紹介動画が sm37471880 にあります。
+
+https://www.nicovideo.jp/watch/sm37471880
+
 更新履歴は CHANGELOG を参照してください。
 
 https://github.com/oov/forcepser/blob/master/CHANGELOG.md
