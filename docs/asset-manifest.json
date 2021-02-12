@@ -1,0 +1,34 @@
+{
+  "files": {
+    "main.css": "./static/css/main.70cb9ba5.chunk.css",
+    "main.js": "./static/js/main.b3529fd4.chunk.js",
+    "main.js.map": "./static/js/main.b3529fd4.chunk.js.map",
+    "runtime-main.js": "./static/js/runtime-main.72c4a204.js",
+    "runtime-main.js.map": "./static/js/runtime-main.72c4a204.js.map",
+    "static/js/2.c5b14c9f.chunk.js": "./static/js/2.c5b14c9f.chunk.js",
+    "static/js/2.c5b14c9f.chunk.js.map": "./static/js/2.c5b14c9f.chunk.js.map",
+    "static/js/3.d08c9433.chunk.js": "./static/js/3.d08c9433.chunk.js",
+    "static/js/3.d08c9433.chunk.js.map": "./static/js/3.d08c9433.chunk.js.map",
+    "index.html": "./index.html",
+    "static/css/main.70cb9ba5.chunk.css.map": "./static/css/main.70cb9ba5.chunk.css.map",
+    "static/js/2.c5b14c9f.chunk.js.LICENSE.txt": "./static/js/2.c5b14c9f.chunk.js.LICENSE.txt",
+    "static/media/aitalk5_save.2c2e1ec4.png": "./static/media/aitalk5_save.2c2e1ec4.png",
+    "static/media/aitalk5_voice.08838890.png": "./static/media/aitalk5_voice.08838890.png",
+    "static/media/aitalk6_save.c3f3b01a.png": "./static/media/aitalk6_save.c3f3b01a.png",
+    "static/media/aitalk6_voice.553d7f6a.png": "./static/media/aitalk6_voice.553d7f6a.png",
+    "static/media/bouyomi_file.e492205b.png": "./static/media/bouyomi_file.e492205b.png",
+    "static/media/cevio_menu2.73fcc1e0.png": "./static/media/cevio_menu2.73fcc1e0.png",
+    "static/media/cevio_save.6b451599.png": "./static/media/cevio_save.6b451599.png",
+    "static/media/cevio_talk.a0da0c5f.png": "./static/media/cevio_talk.a0da0c5f.png",
+    "static/media/cevio_talk2.7716e8c8.png": "./static/media/cevio_talk2.7716e8c8.png",
+    "static/media/voiceroidutil_save.f664c53a.png": "./static/media/voiceroidutil_save.f664c53a.png",
+    "static/media/yck_config.590b1335.png": "./static/media/yck_config.590b1335.png",
+    "static/media/yck_test.980d617b.png": "./static/media/yck_test.980d617b.png"
+  },
+  "entrypoints": [
+    "static/js/runtime-main.72c4a204.js",
+    "static/js/2.c5b14c9f.chunk.js",
+    "static/css/main.70cb9ba5.chunk.css",
+    "static/js/main.b3529fd4.chunk.js"
+  ]
+}
