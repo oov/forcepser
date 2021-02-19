@@ -150,7 +150,7 @@ func watchProjectPath(ctx context.Context, notify chan<- map[string]struct{}, pr
 	}
 }
 
-func watch(ctx context.Context, watcher *fsnotify.Watcher, notify chan<- map[string]struct{}, settingFile string, freshness float64, sortdelay float64) {
+func watch(ctx context.Context, watcher *fsnotify.Watcher, settingWatcher *fsnotify.Watcher, notify chan<- map[string]struct{}, settingFile string, freshness float64, sortdelay float64) {
 	defer close(notify)
 	var finish bool
 	changed := map[string]struct{}{}
@@ -168,14 +168,6 @@ func watch(ctx context.Context, watcher *fsnotify.Watcher, notify chan<- map[str
 				if verbose {
 					log.Println(suppress.Renderln("  オペレーションが Create / Write ではないので何もしません"))
 				}
-				continue
-			}
-			if event.Name == settingFile {
-				if verbose {
-					log.Println(suppress.Renderln("  設定ファイルの再読み込みとして処理します"))
-				}
-				finish = true
-				timer.Reset(100 * time.Millisecond)
 				continue
 			}
 			ext := strings.ToLower(filepath.Ext(event.Name))
@@ -205,12 +197,23 @@ func watch(ctx context.Context, watcher *fsnotify.Watcher, notify chan<- map[str
 			}
 			changed[event.Name[:len(event.Name)-len(ext)]+".wav"] = struct{}{}
 			timer.Reset(time.Duration(sortdelay) * time.Second)
+		case event := <-settingWatcher.Events:
+			if event.Name == settingFile {
+				if verbose {
+					log.Println(suppress.Renderln("  設定ファイルの再読み込みとして処理します"))
+				}
+				finish = true
+				timer.Reset(100 * time.Millisecond)
+				continue
+			}
 		case err := <-watcher.Errors:
+			log.Println(warn.Renderln("監視中にエラーが発生しました:", err))
+		case err := <-settingWatcher.Errors:
 			log.Println(warn.Renderln("監視中にエラーが発生しました:", err))
 		case <-timer.C:
 			if finish {
 				notify <- nil
-				break
+				continue
 			}
 			notify <- changed
 			changed = map[string]struct{}{}
@@ -301,7 +304,7 @@ func printDetails(setting *setting, tempDir string) {
 	log.Println()
 }
 
-func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[string]int, recentSent map[string]time.Time, loop int) error {
+func process(watcher *fsnotify.Watcher, settingWatcher *fsnotify.Watcher, settingFile string, recentChanged map[string]int, recentSent map[string]time.Time, loop int) error {
 	exePath, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("exe ファイルのパスが取得できません: %w", err)
@@ -377,7 +380,7 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go watchProjectPath(ctx, notify, projectPath)
-	go watch(ctx, watcher, notify, settingFile, setting.Freshness, setting.SortDelay)
+	go watch(ctx, watcher, settingWatcher, notify, settingFile, setting.Freshness, setting.SortDelay)
 	for files := range notify {
 		if files == nil {
 			log.Println()
@@ -491,21 +494,27 @@ func main() {
 	log.Println(suppress.Renderln("  設定ファイル:"), settingFile)
 	log.Println()
 
+	settingWatcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatalln("fsnotify.NewWatcher に失敗しました:", err)
+	}
+	defer settingWatcher.Close()
+
+	err = settingWatcher.Add(filepath.Dir(settingFile))
+	if err != nil {
+		log.Fatalln("設定ファイルフォルダーの監視に失敗しました:", err)
+	}
+
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatalln("fsnotify.NewWatcher に失敗しました:", err)
 	}
 	defer watcher.Close()
 
-	err = watcher.Add(settingFile)
-	if err != nil {
-		log.Fatalln("設定ファイルの監視に失敗しました:", err)
-	}
-
 	recentChanged := map[string]int{}
 	recentSent := map[string]time.Time{}
 	for i := 0; ; i++ {
-		err = process(watcher, settingFile, recentChanged, recentSent, i)
+		err = process(watcher, settingWatcher, settingFile, recentChanged, recentSent, i)
 		if err != nil {
 			log.Println(err)
 			log.Println("3秒後にリトライします")
