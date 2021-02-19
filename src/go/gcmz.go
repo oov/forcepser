@@ -67,9 +67,9 @@ func openFileMapping(desiredAccess uint32, inheritHandle uint32, name *uint16) (
 	return
 }
 
-func getConsoleWindow() (handle windows.Handle) {
+func getConsoleWindow() (handle windows.HWND) {
 	r0, _, _ := syscall.Syscall(procGetConsoleWindow.Addr(), 0, 0, 0, 0)
-	handle = windows.Handle(r0)
+	handle = windows.HWND(r0)
 	return
 }
 
@@ -82,7 +82,7 @@ func sendMessage(hwnd windows.Handle, uMsg uint32, wParam uintptr, lParam uintpt
 	return
 }
 
-func setForegroundWindow(hwnd windows.Handle) bool {
+func setForegroundWindow(hwnd windows.HWND) bool {
 	r0, _, _ := syscall.Syscall(procSetForegroundWindow.Addr(), 1, uintptr(hwnd), 0, 0)
 	return r0 != 0
 }
@@ -101,7 +101,7 @@ func getSpecialFolderPath(csidl uintptr) string {
 	return windows.UTF16ToString(s[:])
 }
 
-func shGetSpecialFolderPath(hwnd windows.Handle, path *uint16, csidl uintptr, fCreate bool) bool {
+func shGetSpecialFolderPath(hwnd windows.HWND, path *uint16, csidl uintptr, fCreate bool) bool {
 	var b uintptr
 	if fCreate {
 		b = 1
