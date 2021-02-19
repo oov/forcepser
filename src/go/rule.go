@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -114,8 +116,8 @@ func makeWildcard(s string) (*regexp.Regexp, error) {
 	return regexp.Compile(string(buf))
 }
 
-func newSetting(path string, tempDir string, projectDir string) (*setting, error) {
-	config, err := loadTOML(path)
+func newSetting(r io.Reader, tempDir string, projectDir string) (*setting, error) {
+	config, err := loadTOML(r)
 	if err != nil {
 		return nil, fmt.Errorf("could not read setting file: %w", err)
 	}
@@ -397,16 +399,23 @@ func (ss *setting) Dirs() []string {
 	return r
 }
 
-func loadTOML(path string) (*toml.Tree, error) {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read file: %w", err)
+func loadTOML(r io.Reader) (*toml.Tree, error) {
+	rr := bufio.NewReader(r)
+	b, err := rr.Peek(3)
+	if err == nil && isUTF8BOM(b) {
+		if _, err = rr.Discard(3); err != nil {
+			return nil, err
+		}
 	}
-	return toml.LoadBytes(skipUTF8BOM(b))
+	return toml.LoadReader(rr)
+}
+
+func isUTF8BOM(b []byte) bool {
+	return len(b) >= 3 && b[0] == 0xef && b[1] == 0xbb && b[2] == 0xbf
 }
 
 func skipUTF8BOM(b []byte) []byte {
-	if len(b) >= 3 && b[0] == 0xef && b[1] == 0xbb && b[2] == 0xbf {
+	if isUTF8BOM(b) {
 		return b[3:]
 	}
 	return b

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -304,6 +305,19 @@ func printDetails(setting *setting, tempDir string) {
 	log.Println()
 }
 
+func loadSetting(path string, tempDir string, projectDir string) (*setting, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return newSetting(f, tempDir, projectDir)
+}
+
+func tempSetting(tempDir string, projectDir string) (*setting, error) {
+	return newSetting(strings.NewReader(``), tempDir, projectDir)
+}
+
 func process(watcher *fsnotify.Watcher, settingWatcher *fsnotify.Watcher, settingFile string, recentChanged map[string]int, recentSent map[string]time.Time, loop int) error {
 	exePath, err := os.Executable()
 	if err != nil {
@@ -317,11 +331,18 @@ func process(watcher *fsnotify.Watcher, settingWatcher *fsnotify.Watcher, settin
 		projectDir = filepath.Dir(projectPath)
 	}
 
-	setting, err := newSetting(settingFile, tempDir, projectDir)
+	setting, err := loadSetting(settingFile, tempDir, projectDir)
 	if err != nil {
-		return fmt.Errorf("設定の読み込みに失敗しました: %w", err)
+		if !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("設定の読み込みに失敗しました: %w", err)
+		}
+		log.Println(warn.Renderln("設定ファイルが開けませんでした。"))
+		log.Println(suppress.Renderln(filepath.Base(settingFile), "を作成すると自動で読み込みます。"))
+		log.Println()
+		setting, _ = tempSetting(tempDir, projectDir)
+	} else {
+		printDetails(setting, tempDir)
 	}
-	printDetails(setting, tempDir)
 
 	L := lua.NewState()
 	defer L.Close()
