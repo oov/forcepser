@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -237,7 +236,7 @@ var (
 func (ss *setting) Find(path string) (*rule, string, error) {
 	dir := filepath.Dir(path)
 	base := filepath.Base(path)
-	textRaw, err := ioutil.ReadFile(path[:len(path)-4] + ".txt")
+	textRaw, err := os.ReadFile(path[:len(path)-4] + ".txt")
 	if err != nil {
 		return nil, "", err
 	}
@@ -399,7 +398,7 @@ func (ss *setting) Dirs() []string {
 }
 
 func loadTOML(path string) (*toml.Tree, error) {
-	b, err := ioutil.ReadFile(path)
+	b, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}

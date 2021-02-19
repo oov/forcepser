@@ -81,7 +81,7 @@ https://github.com/oov/forcepser/releases
 Windows Subsystem for Linux 上で `./build.bash` を行うと必要なファイルがビルドできます。
 なお、リポジトリは GOPATH 上にある前提でコードが書かれています。
 
-ソースコードのコンパイルには Go 1.14.4 windows/amd64 が必要です。
+ソースコードのコンパイルには Go 1.16 windows/amd64 が必要です。
 
 ## Credits
 
