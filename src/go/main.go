@@ -225,13 +225,7 @@ func bool2str(b bool, t string, f string) string {
 	return f
 }
 
-func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[string]int, recentSent map[string]time.Time, loop int) error {
-	exePath, err := os.Executable()
-	if err != nil {
-		return fmt.Errorf("exe ファイルのパスが取得できません: %w", err)
-	}
-	tempDir := filepath.Join(filepath.Dir(exePath), "tmp")
-
+func printDetails(setting *setting, tempDir string) {
 	log.Println(caption.Renderln("AviUtl プロジェクト情報:"))
 	proj, err := readGCMZDropsData()
 	if err != nil {
@@ -256,17 +250,6 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 		}
 	}
 
-	projectPath := getProjectPath()
-	var projectDir string
-	if projectPath != "" {
-		projectDir = filepath.Dir(projectPath)
-	}
-
-	setting, err := newSetting(settingFile, tempDir, projectDir)
-	if err != nil {
-		return fmt.Errorf("設定の読み込みに失敗しました: %w", err)
-	}
-
 	log.Println(caption.Renderln("環境変数:"))
 	log.Println(suppress.Renderln("  %BASEDIR%:   "), setting.BaseDir)
 	log.Println(suppress.Renderln("  %TEMPDIR%:   "), tempDir)
@@ -276,37 +259,10 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 	log.Println(suppress.Renderln("  %MYDOC%:     "), getSpecialFolderPath(CSIDL_PERSONAL))
 	log.Println()
 
-	L := lua.NewState()
-	defer L.Close()
-
-	L.PreloadModule("re", gluare.Loader)
-	err = L.DoString(`re = require("re")`)
-	if err != nil {
-		return fmt.Errorf("Lua スクリプト環境の初期化中にエラーが発生しました: %w", err)
-	}
-
-	L.SetGlobal("debug_print", L.NewFunction(luaDebugPrint))
-	L.SetGlobal("debug_error", L.NewFunction(luaDebugError))
-	L.SetGlobal("debug_print_verbose", L.NewFunction(luaDebugPrintVerbose))
-	L.SetGlobal("sendfile", L.NewFunction(luaSendFile))
-	L.SetGlobal("findrule", L.NewFunction(luaFindRule(setting)))
-	L.SetGlobal("getaudioinfo", L.NewFunction(luaGetAudioInfo))
-	L.SetGlobal("tosjis", L.NewFunction(luaToSJIS))
-	L.SetGlobal("fromsjis", L.NewFunction(luaFromSJIS))
-	L.SetGlobal("toexostring", L.NewFunction(luaToEXOString))
-	L.SetGlobal("fromexostring", L.NewFunction(luaFromEXOString))
-	L.SetGlobal("tofilename", L.NewFunction(luaToFilename))
-	L.SetGlobal("replaceenv", L.NewFunction(luaReplaceEnv(setting)))
-
-	if err := L.DoFile("_entrypoint.lua"); err != nil {
-		return fmt.Errorf("_entrypoint.lua の実行中にエラーが発生しました: %w", err)
-	}
-
 	log.Println(suppress.Renderln("  delta:"), setting.Delta)
 	log.Println(suppress.Renderln("  freshness:"), setting.Freshness)
 	log.Println()
 
-	updateOnly := loop > 0
 	for i, a := range setting.Asas {
 		log.Println(caption.Sprintf("Asas %d:", i+1))
 		log.Println(suppress.Renderln("  対象EXE:"), a.Exe)
@@ -314,11 +270,7 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 		log.Println(suppress.Renderln("  保存先フォルダー:"), a.ExpandedFolder())
 		log.Println(suppress.Renderln("  フォーマット:"), a.Format)
 		log.Println(suppress.Renderln("  フラグ:"), a.Flags)
-		if a.Exists() {
-			if _, err := a.ConfirmAndRun(updateOnly); err != nil {
-				return fmt.Errorf("プログラムの起動に失敗しました: %w", err)
-			}
-		} else {
+		if !a.Exists() {
 			log.Println(warn.Renderln("  [警告] 対象EXE が見つからないため設定を無視します"))
 		}
 	}
@@ -347,6 +299,61 @@ func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[st
 		}
 	}
 	log.Println()
+}
+
+func process(watcher *fsnotify.Watcher, settingFile string, recentChanged map[string]int, recentSent map[string]time.Time, loop int) error {
+	exePath, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("exe ファイルのパスが取得できません: %w", err)
+	}
+	tempDir := filepath.Join(filepath.Dir(exePath), "tmp")
+
+	projectPath := getProjectPath()
+	var projectDir string
+	if projectPath != "" {
+		projectDir = filepath.Dir(projectPath)
+	}
+
+	setting, err := newSetting(settingFile, tempDir, projectDir)
+	if err != nil {
+		return fmt.Errorf("設定の読み込みに失敗しました: %w", err)
+	}
+	printDetails(setting, tempDir)
+
+	L := lua.NewState()
+	defer L.Close()
+
+	L.PreloadModule("re", gluare.Loader)
+	err = L.DoString(`re = require("re")`)
+	if err != nil {
+		return fmt.Errorf("Lua スクリプト環境の初期化中にエラーが発生しました: %w", err)
+	}
+
+	L.SetGlobal("debug_print", L.NewFunction(luaDebugPrint))
+	L.SetGlobal("debug_error", L.NewFunction(luaDebugError))
+	L.SetGlobal("debug_print_verbose", L.NewFunction(luaDebugPrintVerbose))
+	L.SetGlobal("sendfile", L.NewFunction(luaSendFile))
+	L.SetGlobal("findrule", L.NewFunction(luaFindRule(setting)))
+	L.SetGlobal("getaudioinfo", L.NewFunction(luaGetAudioInfo))
+	L.SetGlobal("tosjis", L.NewFunction(luaToSJIS))
+	L.SetGlobal("fromsjis", L.NewFunction(luaFromSJIS))
+	L.SetGlobal("toexostring", L.NewFunction(luaToEXOString))
+	L.SetGlobal("fromexostring", L.NewFunction(luaFromEXOString))
+	L.SetGlobal("tofilename", L.NewFunction(luaToFilename))
+	L.SetGlobal("replaceenv", L.NewFunction(luaReplaceEnv(setting)))
+
+	if err := L.DoFile("_entrypoint.lua"); err != nil {
+		return fmt.Errorf("_entrypoint.lua の実行中にエラーが発生しました: %w", err)
+	}
+
+	updateOnly := loop > 0
+	for _, a := range setting.Asas {
+		if a.Exists() {
+			if _, err := a.ConfirmAndRun(updateOnly); err != nil {
+				return fmt.Errorf("プログラムの起動に失敗しました: %w", err)
+			}
+		}
+	}
 
 	if err = os.Mkdir(tempDir, 0777); err != nil && !os.IsExist(err) {
 		return fmt.Errorf("tmp フォルダの作成に失敗しました: %w", err)
