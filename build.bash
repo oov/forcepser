@@ -13,7 +13,7 @@ sed 's/\r$//' src/setting.txt-template-old | sed 's/$/\r/' > bin/setting.txt-tem
 sed 's/\r$//' src/lua/_entrypoint.lua | sed 's/$/\r/' > bin/_entrypoint.lua
 
 # update version string
-VERSION='v0.1rc4'
+VERSION='v0.1rc5'
 GITHASH=`git rev-parse --short HEAD`
 cat << EOS | sed 's/\r$//' | sed 's/$/\r/' > 'src/go/ver.go'
 package main
