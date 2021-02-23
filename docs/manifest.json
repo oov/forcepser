@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "かんしくん設定",
+  "name": "かんしくん設定ファイル作成ツール",
   "icons": [
     {
       "src": "favicon.ico",

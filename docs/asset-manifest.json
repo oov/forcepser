@@ -1,34 +1,19 @@
 {
   "files": {
-    "main.css": "./static/css/main.70cb9ba5.chunk.css",
-    "main.js": "./static/js/main.3e3263da.chunk.js",
-    "main.js.map": "./static/js/main.3e3263da.chunk.js.map",
-    "runtime-main.js": "./static/js/runtime-main.ba524a5e.js",
-    "runtime-main.js.map": "./static/js/runtime-main.ba524a5e.js.map",
-    "static/js/2.5f6beb3b.chunk.js": "./static/js/2.5f6beb3b.chunk.js",
-    "static/js/2.5f6beb3b.chunk.js.map": "./static/js/2.5f6beb3b.chunk.js.map",
-    "static/js/3.207f808d.chunk.js": "./static/js/3.207f808d.chunk.js",
-    "static/js/3.207f808d.chunk.js.map": "./static/js/3.207f808d.chunk.js.map",
+    "main.css": "./static/css/main.85d90851.chunk.css",
+    "main.js": "./static/js/main.1cf6caeb.chunk.js",
+    "runtime-main.js": "./static/js/runtime-main.88f9dfb0.js",
+    "static/js/2.7b8e585e.chunk.js": "./static/js/2.7b8e585e.chunk.js",
     "index.html": "./index.html",
-    "static/css/main.70cb9ba5.chunk.css.map": "./static/css/main.70cb9ba5.chunk.css.map",
-    "static/js/2.5f6beb3b.chunk.js.LICENSE.txt": "./static/js/2.5f6beb3b.chunk.js.LICENSE.txt",
-    "static/media/aitalk5_save.2c2e1ec4.png": "./static/media/aitalk5_save.2c2e1ec4.png",
-    "static/media/aitalk5_voice.08838890.png": "./static/media/aitalk5_voice.08838890.png",
-    "static/media/aitalk6_save.c3f3b01a.png": "./static/media/aitalk6_save.c3f3b01a.png",
-    "static/media/aitalk6_voice.553d7f6a.png": "./static/media/aitalk6_voice.553d7f6a.png",
-    "static/media/bouyomi_file.e492205b.png": "./static/media/bouyomi_file.e492205b.png",
-    "static/media/cevio_menu2.73fcc1e0.png": "./static/media/cevio_menu2.73fcc1e0.png",
-    "static/media/cevio_save.6b451599.png": "./static/media/cevio_save.6b451599.png",
-    "static/media/cevio_talk.a0da0c5f.png": "./static/media/cevio_talk.a0da0c5f.png",
-    "static/media/cevio_talk2.7716e8c8.png": "./static/media/cevio_talk2.7716e8c8.png",
-    "static/media/voiceroidutil_save.f664c53a.png": "./static/media/voiceroidutil_save.f664c53a.png",
-    "static/media/yck_config.590b1335.png": "./static/media/yck_config.590b1335.png",
-    "static/media/yck_test.980d617b.png": "./static/media/yck_test.980d617b.png"
+    "static/js/2.7b8e585e.chunk.js.LICENSE.txt": "./static/js/2.7b8e585e.chunk.js.LICENSE.txt",
+    "static/media/bouyomi_file.54211c30.png": "./static/media/bouyomi_file.54211c30.png",
+    "static/media/cevio_menu2.9b435b3e.png": "./static/media/cevio_menu2.9b435b3e.png",
+    "static/media/cevio_talk.3537a950.png": "./static/media/cevio_talk.3537a950.png"
   },
   "entrypoints": [
-    "static/js/runtime-main.ba524a5e.js",
-    "static/js/2.5f6beb3b.chunk.js",
-    "static/css/main.70cb9ba5.chunk.css",
-    "static/js/main.3e3263da.chunk.js"
+    "static/js/runtime-main.88f9dfb0.js",
+    "static/js/2.7b8e585e.chunk.js",
+    "static/css/main.85d90851.chunk.css",
+    "static/js/main.1cf6caeb.chunk.js"
   ]
 }
