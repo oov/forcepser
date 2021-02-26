@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1rc6 2021-02-26
+
+- テンプレートで ガイノイドTALK や A.I.VOICE への言及を追加
+- テンプレートに destdir の設定例を追加
+- GUI エディターを Per-Monitor (V2) DPI Awareness とダークモードに対応させた
+- GUI エディターの細かなバグ修正とエラーチェックの強化
+
 ## 0.1rc5 2021-02-23
 
 - setting.txt がなくても正常起動して待機できるように
