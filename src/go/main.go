@@ -397,7 +397,7 @@ func process(watcher *fsnotify.Watcher, settingWatcher *fsnotify.Watcher, settin
 	if watching == 0 {
 		log.Println(warn.Renderln("  [警告] 監視対象のフォルダーがひとつもありません"))
 	}
-	notify := make(chan map[string]struct{}, 32)
+	notify := make(chan map[string]struct{}, 10000)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go watchProjectPath(ctx, notify, projectPath)
