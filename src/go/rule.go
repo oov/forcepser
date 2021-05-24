@@ -237,6 +237,11 @@ var (
 
 func (ss *setting) Find(path string) (*rule, string, error) {
 	dir := filepath.Dir(path)
+	dirFI, err := getFileInfo(dir)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to get directory info: %w", err)
+	}
+
 	base := filepath.Base(path)
 	textRaw, err := os.ReadFile(path[:len(path)-4] + ".txt")
 	if err != nil {
@@ -249,9 +254,19 @@ func (ss *setting) Find(path string) (*rule, string, error) {
 			log.Println(suppress.Renderln(i, "番目のルールを検証中..."))
 		}
 		r := &ss.Rule[i]
-		if dir != r.ExpandedDir() {
+		ruleDir := r.ExpandedDir()
+		ruledirFI, err := getFileInfo(ruleDir)
+		if err != nil {
 			if verbose {
-				log.Println(suppress.Renderln("  フォルダーのパスが一致しません"))
+				log.Println(suppress.Renderln("  フォルダーの情報取得に失敗しました"))
+				log.Println(suppress.Renderln("    dir:", ruleDir))
+				log.Println(suppress.Renderln("    error:", err))
+			}
+			continue
+		}
+		if !isSameFileInfo(dirFI, ruledirFI) {
+			if verbose {
+				log.Println(suppress.Renderln("  フォルダーが一致しません"))
 				log.Println(suppress.Renderln("    want:", r.ExpandedDir()))
 				log.Println(suppress.Renderln("    got:", dir))
 			}
