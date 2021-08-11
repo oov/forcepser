@@ -38,6 +38,7 @@ func (mt moveType) Readable() string {
 type rule struct {
 	Dir      string
 	File     string
+	FileRE   string
 	Encoding string
 	Layer    int
 	Modifier string
@@ -169,8 +170,19 @@ func newSetting(r io.Reader, tempDir string, projectDir string) (*setting, error
 
 		r.Layer = getInt("layer", tr, 1)
 
-		r.File = getString("file", tr, "*.wav")
-		r.fileRE, err = makeWildcard(r.File)
+		r.File = getString("file", tr, "")
+		r.FileRE = getString("filere", tr, "")
+		if r.File != "" && r.FileRE != "" {
+			return nil, fmt.Errorf("file and fileRE cannot be used at the same time")
+		}
+		if r.FileRE != "" {
+			r.fileRE, err = regexp.Compile(r.File)
+		} else {
+			if r.File == "" {
+				r.File = "*.wav"
+			}
+			r.fileRE, err = makeWildcard(r.File)
+		}
 		if err != nil {
 			return nil, err
 		}
