@@ -42,6 +42,7 @@ local function genexo(proj, file, text, rule)
   local ai = getaudioinfo(file)
   local length = math.ceil((ai.samples * proj.video_rate) / (ai.samplerate * proj.video_scale))
   local padding = math.ceil((rule.padding * proj.video_rate) / (1000 * proj.video_scale))
+  local jp = not proj.flags_englishpatched
   local exo = {}
   table.insert(exo, "[exedit]")
   table.insert(exo, "width=" .. proj.width)
@@ -59,17 +60,17 @@ local function genexo(proj, file, text, rule)
   table.insert(exo, "overlay=1")
   table.insert(exo, "audio=1")
   table.insert(exo, "[0.0]")
-  table.insert(exo, "_name=音声ファイル")
-  table.insert(exo, "再生位置=0.00")
-  table.insert(exo, "再生速度=100.0")
-  table.insert(exo, "ループ再生=0")
-  table.insert(exo, "動画ファイルと連携=0")
+  table.insert(exo, "_name=" .. (jp and "音声ファイル" or "Audio file"))
+  table.insert(exo, (jp and "再生位置" or "Playback position") .. "=0.00")
+  table.insert(exo, (jp and "再生速度" or "vPlay") .. "=100.0")
+  table.insert(exo, (jp and "ループ再生" or "Loop playback") .. "=0")
+  table.insert(exo, (jp and "動画ファイルと連携" or "Sync with video files") .. "=0")
   table.insert(exo, "file=" .. file)
   table.insert(exo, "__json=" .. toexostring('{"padding":'..padding..'}'))
   table.insert(exo, "[0.1]")
-  table.insert(exo, "_name=標準再生")
-  table.insert(exo, "音量=100.0")
-  table.insert(exo, "左右=0.0")
+  table.insert(exo, "_name=" .. (jp and "標準再生" or "Standard playback"))
+  table.insert(exo, (jp and "音量" or "Volume") .. "=100.0")
+  table.insert(exo, (jp and "左右" or "Left-Right") .. "=0.0")
   table.insert(exo, "[1]")
   table.insert(exo, "start=1")
   table.insert(exo, "end=" .. length)
@@ -78,12 +79,12 @@ local function genexo(proj, file, text, rule)
   table.insert(exo, "overlay=1")
   table.insert(exo, "camera=0")
   table.insert(exo, "[1.0]")
-  table.insert(exo, "_name=テキスト")
-  table.insert(exo, "サイズ=24")
-  table.insert(exo, "表示速度=0.0")
-  table.insert(exo, "文字毎に個別オブジェクト=0")
-  table.insert(exo, "移動座標上に表示する=0")
-  table.insert(exo, "自動スクロール=0")
+  table.insert(exo, "_name=" .. (jp and "テキスト" or "Text"))
+  table.insert(exo, (jp and "サイズ" or "Size") .. "=24")
+  table.insert(exo, (jp and "表示速度" or "vDisplay") .. "=0.0")
+  table.insert(exo, (jp and "文字毎に個別オブジェクト" or "1char1obj") .. "=0")
+  table.insert(exo, (jp and "移動座標上に表示する" or "Show on motion coordinate") .. "=0")
+  table.insert(exo, (jp and "自動スクロール" or "Automatic scrolling") .. "=0")
   table.insert(exo, "B=0")
   table.insert(exo, "I=0")
   table.insert(exo, "type=0")
@@ -96,16 +97,16 @@ local function genexo(proj, file, text, rule)
   table.insert(exo, "precision=0")
   table.insert(exo, "color=ffffff")
   table.insert(exo, "color2=000000")
-  table.insert(exo, "font=MS UI Gothic")
+  table.insert(exo, "font=" .. (jp and "MS UI Gothic" or "Segoe UI"))
   table.insert(exo, "text=" .. toexostring(text))
   table.insert(exo, "[1.1]")
-  table.insert(exo, "_name=標準描画")
+  table.insert(exo, "_name=" .. (jp and "標準描画" or "Standard drawing"))
   table.insert(exo, "X=0.0")
   table.insert(exo, "Y=0.0")
   table.insert(exo, "Z=0.0")
-  table.insert(exo, "拡大率=100.00")
-  table.insert(exo, "透明度=0.0")
-  table.insert(exo, "回転=0.00")
+  table.insert(exo, (jp and "拡大率" or "Zoom%") .. "=100.00")
+  table.insert(exo, (jp and "透明度" or "Clearness") .. "=0.0")
+  table.insert(exo, (jp and "回転" or "Rotation") .. "=0.00")
   table.insert(exo, "blend=0")
   return tosjis(table.concat(exo, "\r\n")), length+padding
 end
@@ -129,6 +130,7 @@ local function parseexo(lines)
 end
 
 local function genexofromtemplate(exo, proj, file, text, rule)
+  local jp = not proj.flags_englishpatched
   local f, err = io.open(exo, "rb")
   if f == nil then
     return nil
@@ -168,14 +170,14 @@ local function genexofromtemplate(exo, proj, file, text, rule)
     local tgst, tged = -1, -1
     for sect, t in pairs(ini) do
       if sect:match('^%d+%.0$') ~= nil then
-        if t._name == "音声ファイル" and t.file == "" then
+        if (t._name == "音声ファイル" or t._name == "Audio file") and t.file == "" then
           -- ファイルを指定していない音声ファイルオブジェクトには音声ファイルへのパスを突っ込む
           ini[sect].file = file
-          ini[sect]["動画ファイルと連携"] = "0"
+          ini[sect][jp and "動画ファイルと連携" or "Sync with video files"] = "0"
           ini[sect].__json = toexostring('{"padding":'..padding..'}')
           local psect = sect:sub(1, #sect-2)
           tgst, tged = ini[psect]["start"], ini[psect]["end"]
-        elseif t._name == "テキスト" and t.text:sub(1, 12) == "575b555e0000" then
+        elseif (t._name == "テキスト" or t._name == "Text") and t.text:sub(1, 12) == "575b555e0000" then
           -- 本文が「字幕」になっているテキストオブジェクトには字幕を突っ込む
           ini[sect].text = toexostring(text)
         end

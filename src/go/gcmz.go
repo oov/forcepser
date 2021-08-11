@@ -120,6 +120,7 @@ type gcmzDropsData struct {
 	AudioCh     int
 	GCMZAPIVer  int
 	ProjectFile string
+	Flags       int
 }
 
 func readGCMZDropsData() (*gcmzDropsData, error) {
@@ -160,7 +161,7 @@ func readGCMZDropsData() (*gcmzDropsData, error) {
 	var m []byte
 	mh := (*reflect.SliceHeader)(unsafe.Pointer(&m))
 	mh.Data = p
-	mh.Len = 32 + windows.MAX_PATH*2
+	mh.Len = 32 + windows.MAX_PATH*2 + 4
 	mh.Cap = mh.Len
 	r := &gcmzDropsData{
 		Window:     windows.Handle(binary.LittleEndian.Uint32(m[0:])),
@@ -174,6 +175,9 @@ func readGCMZDropsData() (*gcmzDropsData, error) {
 	if !oldAPI {
 		r.GCMZAPIVer = int(int32(binary.LittleEndian.Uint32(m[28:])))
 		r.ProjectFile = windows.UTF16PtrToString((*uint16)(unsafe.Pointer(&m[32])))
+		if r.GCMZAPIVer >= 2 {
+			r.Flags = int(binary.LittleEndian.Uint32(m[32+windows.MAX_PATH*2:]))
+		}
 	}
 	return r, nil
 }

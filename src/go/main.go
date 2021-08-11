@@ -89,6 +89,8 @@ func processFiles(L *lua.LState, files []file, sort string, recentChanged map[st
 	pt := L.NewTable()
 	pt.RawSetString("projectfile", lua.LString(proj.ProjectFile))
 	pt.RawSetString("gcmzapiver", lua.LNumber(proj.GCMZAPIVer))
+	pt.RawSetString("flags", lua.LNumber(proj.Flags))
+	pt.RawSetString("flags_englishpatched", lua.LBool(proj.Flags&1 == 1))
 	pt.RawSetString("window", lua.LNumber(proj.Window))
 	pt.RawSetString("width", lua.LNumber(proj.Width))
 	pt.RawSetString("height", lua.LNumber(proj.Height))
@@ -250,6 +252,9 @@ func printDetails(setting *setting, tempDir string) {
 			log.Println(suppress.Renderln("  VideoScale: "), proj.VideoScale)
 			log.Println(suppress.Renderln("  AudioRate:  "), proj.AudioRate)
 			log.Println(suppress.Renderln("  AudioCh:    "), proj.AudioCh)
+			if proj.GCMZAPIVer >= 2 {
+				log.Println(suppress.Renderln("  Flags:      "), proj.Flags)
+			}
 			log.Println()
 		}
 	}
