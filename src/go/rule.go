@@ -144,7 +144,6 @@ func newSetting(r io.Reader, tempDir string, projectDir string) (*setting, error
 	switch fm := getString("filemove", config, "off"); fm {
 	case "off", "copy", "move":
 		s.FileMove = moveType(fm)
-		break
 	default:
 		s.FileMove = moveType("off")
 	}
@@ -154,7 +153,6 @@ func newSetting(r io.Reader, tempDir string, projectDir string) (*setting, error
 	switch ss := getString("sort", config, "moddate"); ss {
 	case "moddate", "name":
 		s.Sort = ss
-		break
 	default:
 		s.Sort = "moddate"
 	}
@@ -204,7 +202,6 @@ func newSetting(r io.Reader, tempDir string, projectDir string) (*setting, error
 		switch fm := getString("filemove", tr, string(s.FileMove)); fm {
 		case "off", "copy", "move":
 			r.FileMove = moveType(fm)
-			break
 		default:
 			r.FileMove = s.FileMove
 		}

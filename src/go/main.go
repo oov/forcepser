@@ -186,7 +186,7 @@ func watch(ctx context.Context, watcher *fsnotify.Watcher, settingWatcher *fsnot
 					}
 					continue
 				}
-				if math.Abs(time.Now().Sub(st.ModTime()).Seconds()) > freshness {
+				if math.Abs(time.Since(st.ModTime()).Seconds()) > freshness {
 					if verbose {
 						log.Println(suppress.Renderln("  更新日時が", freshness, "秒以上前なので何もしません"))
 					}
@@ -350,7 +350,7 @@ func process(watcher *fsnotify.Watcher, settingWatcher *fsnotify.Watcher, settin
 	L.PreloadModule("re", gluare.Loader)
 	err = L.DoString(`re = require("re")`)
 	if err != nil {
-		return fmt.Errorf("Lua スクリプト環境の初期化中にエラーが発生しました: %w", err)
+		return fmt.Errorf("スクリプト環境の初期化中にエラーが発生しました: %w", err)
 	}
 
 	L.SetGlobal("debug_print", L.NewFunction(luaDebugPrint))

@@ -195,7 +195,7 @@ func luaFindRule(ss *setting) lua.LGFunction {
 		if rule.FileMove == "move" || rule.FileMove == "copy" {
 			destDir := rule.ExpandedDestDir()
 			srcDir := filepath.Dir(path)
-			if strings.Index(rule.DestDir, "%PROJECTDIR%") != -1 && ss.projectDir == "" {
+			if strings.Contains(rule.DestDir, "%PROJECTDIR%") && ss.projectDir == "" {
 				proj, err := readGCMZDropsData()
 				if err != nil || proj.GCMZAPIVer < 1 {
 					L.RaiseError("ごちゃまぜドロップス v0.3.13 以降を導入した AviUtl が見つかりません")
