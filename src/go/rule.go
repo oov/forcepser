@@ -174,7 +174,7 @@ func newSetting(r io.Reader, tempDir string, projectDir string) (*setting, error
 			return nil, fmt.Errorf("file and fileRE cannot be used at the same time")
 		}
 		if r.FileRE != "" {
-			r.fileRE, err = regexp.Compile(r.File)
+			r.fileRE, err = regexp.Compile(r.FileRE)
 		} else {
 			if r.File == "" {
 				r.File = "*.wav"
