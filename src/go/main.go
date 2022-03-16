@@ -329,6 +329,9 @@ func process(watcher *fsnotify.Watcher, settingWatcher *fsnotify.Watcher, settin
 		return fmt.Errorf("exe ファイルのパスが取得できません: %w", err)
 	}
 	tempDir := filepath.Join(filepath.Dir(exePath), "tmp")
+	if err = os.Mkdir(tempDir, 0777); err != nil && !os.IsExist(err) {
+		return fmt.Errorf("tmp フォルダの作成に失敗しました: %w", err)
+	}
 
 	projectPath := getProjectPath()
 	var projectDir string
@@ -382,10 +385,6 @@ func process(watcher *fsnotify.Watcher, settingWatcher *fsnotify.Watcher, settin
 				return fmt.Errorf("プログラムの起動に失敗しました: %w", err)
 			}
 		}
-	}
-
-	if err = os.Mkdir(tempDir, 0777); err != nil && !os.IsExist(err) {
-		return fmt.Errorf("tmp フォルダの作成に失敗しました: %w", err)
 	}
 
 	log.Println(caption.Sprintf("監視を開始します:"))
