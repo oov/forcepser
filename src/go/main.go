@@ -19,6 +19,7 @@ import (
 )
 
 var verbose bool
+var version string
 
 type file struct {
 	Filepath string
