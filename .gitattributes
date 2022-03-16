@@ -1,0 +1,4 @@
+README.md                    text eol=crlf
+*.lua                        text eol=crlf
+src/setting.txt-template     text eol=crlf
+src/setting.txt-template-old text eol=crlf

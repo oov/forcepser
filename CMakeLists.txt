@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-project(forcepser)
+project(forcepser NONE)
 
 set(EXPORT_DIR "bin" CACHE STRING "export directory")
 if ("${EXPORT_DIR}" STREQUAL "")
