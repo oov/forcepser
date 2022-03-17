@@ -71,7 +71,7 @@ jobs:
             
             - [forcepser_${{ steps.get_version.outputs.tag }}.zip](https://github.com/oov/forcepser/releases/download/${{ steps.get_version.outputs.tag }}/forcepser_${{ steps.get_version.outputs.tag }}.zip)
             
-            ### 今回の変更点
+            ### 変更点
             
             - ＊＊＊＊
       - name: Upload Release Asset
