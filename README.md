@@ -24,8 +24,6 @@ https://github.com/oov/forcepser/blob/master/CHANGELOG.md
 
 ## ダウンロード
 
-以下の URL からダウンロードできます。
-
 https://github.com/oov/forcepser/releases
 
 # 使い方
@@ -84,10 +82,8 @@ https://www.nicovideo.jp/watch/sm37471880
 
 ## バイナリのビルドについて
 
-Windows Subsystem for Linux 上で `./build.bash` を行うと必要なファイルがビルドできます。
-なお、リポジトリは GOPATH 上にある前提でコードが書かれています。
-
-ソースコードのコンパイルには Go 1.16 windows/amd64 が必要です。
+かんしくんは [MSYS2](https://www.msys2.org/) + MINGW32 上で開発しています。  
+ビルド方法や必要になるパッケージなどは [GitHub Actions の設定ファイル](https://github.com/oov/forcepser/blob/main/.github/workflows/releaser.yml) を参考にしてください。
 
 ## Credits
 
@@ -154,7 +150,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ### fsnotify
 
-https://fsnotify.org/  
 https://github.com/fsnotify/fsnotify
 
 Copyright (c) 2012 The Go Authors. All rights reserved.  
@@ -188,7 +183,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ### GopherLua
 
-https://github.com/yuin/gopher-lua  
+https://github.com/yuin/gopher-lua
 
 The MIT License (MIT)
 
