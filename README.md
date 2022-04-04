@@ -1,4 +1,7 @@
-# かんしくん
+かんしくん
+==========
+
+@git_tag@ ( @git_revision@ )
 
 指定されたフォルダーを監視して、同じ名前の `*.wav` と `*.txt` が追加された時に
 [ごちゃまぜドロップス](https://github.com/oov/aviutl_gcmzdrops) の外部連携 API に投げつけるプログラムです。
@@ -12,9 +15,10 @@ https://www.nicovideo.jp/watch/sm37471880
 
 更新履歴は CHANGELOG を参照してください。
 
-https://github.com/oov/forcepser/blob/master/CHANGELOG.md
+https://github.com/oov/forcepser/blob/main/CHANGELOG.md
 
-## 注意事項
+注意事項
+--------
 
 かんしくん は無保証で提供されます。  
 かんしくん を使用したこと及び使用しなかったことによるいかなる損害について、開発者は責任を負いません。
@@ -22,11 +26,13 @@ https://github.com/oov/forcepser/blob/master/CHANGELOG.md
 これに同意できない場合、あなたは かんしくん を使用することができません。
 また、プログラムの連動起動を行う場合は asas\asas.txt の注意事項も合わせて確認してください。
 
-## ダウンロード
+ダウンロード
+------------
 
 https://github.com/oov/forcepser/releases
 
-# 使い方
+使い方
+------
 
 1. `setting.txt-template` のファイル名を `setting.txt` に変更します。
 2. `setting.txt` をテキストエディタで開き、監視対象にしたいフォルダーや、反応させたいファイル名を設定します。
@@ -40,13 +46,15 @@ https://www.nicovideo.jp/watch/sm37471880
 
 この方法での導入手順を上記動画にて解説しています。
 
-## `asas` フォルダーについて
+`asas` フォルダーについて
+-------------------------
 
 `asas` フォルダーには別途配布している [Auto Save As](https://www.nicovideo.jp/watch/sm37343311) というプログラムが同梱されています。
 
 これはプログラムの連動起動と「名前を付けて保存」ダイアログの自動処理のために使用されます。
 
-## 起動時パラメーターについて
+起動時パラメーターについて
+--------------------------
 
 `forcepser.exe` を起動する際に、以下のような引数を受け付けます。
 
@@ -59,7 +67,8 @@ https://www.nicovideo.jp/watch/sm37471880
 - `settingfile`
   - 設定ファイルへのパスを渡すことで、任意のファイルを設定ファイルとして読み込めます。
 
-## FAQ
+FAQ
+---
 
 ### Q. うまく動かない
 
@@ -80,12 +89,14 @@ https://www.nicovideo.jp/watch/sm37471880
 
 音声ファイルを一括生成して処理を行う場合は NTFS や exFAT などの、更新日時の精度が高いファイルシステムを利用してみてください。
 
-## バイナリのビルドについて
+バイナリのビルドについて
+------------------------
 
 かんしくんは [MSYS2](https://www.msys2.org/) + MINGW32 上で開発しています。  
 ビルド方法や必要になるパッケージなどは [GitHub Actions の設定ファイル](https://github.com/oov/forcepser/blob/main/.github/workflows/releaser.yml) を参考にしてください。
 
-## Credits
+Credits
+-------
 
 かんしくん is made possible by the following open source softwares.
 
