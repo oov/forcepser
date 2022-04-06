@@ -8,6 +8,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -54,6 +55,12 @@ var (
 	caption  colorizer = color.Bold
 	suppress colorizer = color.Gray
 )
+
+func clearScreen() error {
+	cmd := exec.Command("cmd", "/c", "cls")
+	cmd.Stdout = os.Stdout
+	return cmd.Run()
+}
 
 func processFiles(L *lua.LState, files []file, sort string, recentChanged map[string]int, recentSent map[string]time.Time) (needRetry bool, err error) {
 	defer func() {
@@ -409,10 +416,7 @@ func process(watcher *fsnotify.Watcher, settingWatcher *fsnotify.Watcher, settin
 	go watch(ctx, watcher, settingWatcher, notify, settingFile, setting.Freshness, setting.SortDelay)
 	for files := range notify {
 		if files == nil {
-			log.Println()
-			log.Println("設定ファイルを再読み込みします")
-			log.Println()
-			return nil
+			return clearScreen()
 		}
 
 		now := time.Now()
