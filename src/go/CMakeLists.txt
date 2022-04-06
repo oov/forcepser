@@ -34,8 +34,8 @@ add_custom_target(copy_related_files
   COMMAND ${CMAKE_COMMAND} -E copy "${PROJECT_SOURCE_DIR}/src/setting.txt-template-old" "${CMAKE_BINARY_DIR}/${EXPORT_DIR}/setting.txt-template-old"
 )
 
-add_custom_target(forcepser_exe ALL
-  COMMAND go build -x
+add_custom_target(forcepser_exe ALL COMMAND ${CMAKE_COMMAND} -E env GOROOT="$ENV{MINGW_PREFIX}/lib/go"
+  go build -x
     "-ldflags=\"-s -X \\\"main.version=${git_tag} ( ${git_revision} )\\\"\""
     -o "${CMAKE_BINARY_DIR}/${EXPORT_DIR}/forcepser.exe"
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
