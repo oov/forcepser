@@ -33,6 +33,9 @@ function changed(files, sort, proj)
     local ok, err = pcall(finddrop, file.path, proj, success)
     if not ok then
       debug_error("  処理中にエラーが発生しました: " .. err)
+      if file.trycount < file.maxretry then
+        debug_print("    このファイルは時間をおいてリトライします")
+      end
     end
   end
   return success

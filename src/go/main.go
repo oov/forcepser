@@ -65,7 +65,7 @@ func clearScreen() error {
 func processFiles(L *lua.LState, files []file, sort string, recentChanged map[string]int, recentSent map[string]time.Time) (needRetry bool, err error) {
 	defer func() {
 		for k, ct := range recentChanged {
-			if ct == 9 {
+			if ct == maxRetry-1 {
 				log.Println(warn.Renderln("  たくさん失敗したのでこのファイルは諦めます:", k))
 				delete(recentChanged, k)
 				continue
@@ -91,6 +91,7 @@ func processFiles(L *lua.LState, files []file, sort string, recentChanged map[st
 		file := L.NewTable()
 		file.RawSetString("path", lua.LString(f.Filepath))
 		file.RawSetString("trycount", lua.LNumber(f.TryCount))
+		file.RawSetString("maxretry", lua.LNumber(maxRetry))
 		file.RawSetString("moddate", lua.LNumber(float64(f.ModDate.Unix())+(float64(f.ModDate.Nanosecond())/1e9)))
 		t.Append(file)
 	}
