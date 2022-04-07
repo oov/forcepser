@@ -496,10 +496,6 @@ func main() {
 		caption = dummyColorizer{}
 		suppress = dummyColorizer{}
 	}
-	log.Println(caption.Renderln("かんしくん"), version)
-	if verbose {
-		log.Println(warn.Renderln("冗長ログモードが有効"))
-	}
 
 	exePath, err := os.Executable()
 	if err != nil {
@@ -522,9 +518,6 @@ func main() {
 		log.Fatalln("カレントディレクトリの変更に失敗しました:", err)
 	}
 
-	log.Println(suppress.Renderln("  設定ファイル:"), settingFile)
-	log.Println()
-
 	settingWatcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatalln("fsnotify.NewWatcher に失敗しました:", err)
@@ -545,6 +538,12 @@ func main() {
 	recentChanged := map[string]int{}
 	recentSent := map[string]time.Time{}
 	for i := 0; ; i++ {
+		log.Println(caption.Renderln("かんしくん"), version)
+		if verbose {
+			log.Println(warn.Renderln("冗長ログモードが有効"))
+		}
+		log.Println(suppress.Renderln("  設定ファイル:"), settingFile)
+		log.Println()
 		err = process(watcher, settingWatcher, settingFile, recentChanged, recentSent, i)
 		if err != nil {
 			log.Println(err)
