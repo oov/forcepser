@@ -20,6 +20,7 @@ import (
 )
 
 const maxRetry = 10
+const resendProtectDuration = 5 * time.Second
 
 var verbose bool
 var preventClear bool
@@ -443,7 +444,7 @@ func process(watcher *fsnotify.Watcher, settingWatcher *fsnotify.Watcher, settin
 
 		now := time.Now()
 		for k := range recentSent {
-			if now.Sub(recentSent[k]) > 5*time.Second {
+			if now.Sub(recentSent[k]) > resendProtectDuration {
 				delete(recentSent, k)
 			}
 		}
