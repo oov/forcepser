@@ -126,9 +126,24 @@ func processFiles(L *lua.LState, files []file, sort string, recentChanged map[st
 	now := time.Now()
 	n := rv.MaxN()
 	for i := 1; i <= n; i++ {
-		k := rv.RawGetInt(i).String()
-		recentSent[k] = now
-		delete(recentChanged, k)
+		tbl, ok := rv.RawGetInt(i).(*lua.LTable)
+		if !ok {
+			continue
+		}
+		// remove it from the candidate list regardless of success or failure.
+		src := tbl.RawGetString("src").String()
+		delete(recentChanged, src)
+
+		destV := tbl.RawGetString("dest")
+		if destV.Type() != lua.LTString {
+			continue // rule not found
+		}
+		// if TTS software creates files in the same location as the project,
+		// files that have already been processed may be subject to processing again.
+		// put dest on recentSent to prevent it.
+		dest := destV.String()
+		recentSent[dest] = now
+		delete(recentChanged, dest)
 	}
 	L.Pop(1)
 	return
