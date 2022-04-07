@@ -19,6 +19,8 @@ import (
 	lua "github.com/yuin/gopher-lua"
 )
 
+const maxRetry = 10
+
 var verbose bool
 var version string
 
