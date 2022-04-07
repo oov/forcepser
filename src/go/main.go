@@ -22,6 +22,7 @@ import (
 const maxRetry = 10
 
 var verbose bool
+var preventClear bool
 var version string
 
 type file struct {
@@ -419,6 +420,9 @@ func process(watcher *fsnotify.Watcher, settingWatcher *fsnotify.Watcher, settin
 	go watch(ctx, watcher, settingWatcher, notify, settingFile, setting.Freshness, setting.SortDelay)
 	for files := range notify {
 		if files == nil {
+			if preventClear {
+				return nil
+			}
 			return clearScreen()
 		}
 
@@ -491,6 +495,7 @@ func main() {
 	var mono bool
 	flag.BoolVar(&verbose, "v", false, "verbose output")
 	flag.BoolVar(&mono, "m", false, "disable color")
+	flag.BoolVar(&preventClear, "prevent-clear", false, "prevent clear screen on reload")
 	flag.Parse()
 
 	if mono {

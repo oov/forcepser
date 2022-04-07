@@ -58,12 +58,14 @@ https://www.nicovideo.jp/watch/sm37471880
 
 `forcepser.exe` を起動する際に、以下のような引数を受け付けます。
 
-`forcepser.exe [-v] [-m] [settingfile]`
+`forcepser.exe [-v] [-m] [-prevent-clear] [settingfile]`
 
 - `-v`
   - ログ出力を冗長にします。（主にデバッグ用）
 - `-m`
   - ログ出力を着色を無効化します。
+- `-prevent-clear`
+  - 設定の再読み込み時に行われるログ消去を抑制します。（主にデバッグ用）
 - `settingfile`
   - 設定ファイルへのパスを渡すことで、任意のファイルを設定ファイルとして読み込めます。
 
