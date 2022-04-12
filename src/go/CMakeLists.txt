@@ -39,5 +39,6 @@ add_custom_target(forcepser_exe ALL COMMAND ${CMAKE_COMMAND} -E env GOROOT="$ENV
     "-ldflags=\"-s -X \\\"main.version=${git_tag} ( ${git_revision} )\\\"\""
     -o "${CMAKE_BINARY_DIR}/${EXPORT_DIR}/forcepser.exe"
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+  USES_TERMINAL
 )
 add_dependencies(forcepser_exe generate_readme copy_related_files)
