@@ -1,14 +1,13 @@
-local function finddrop(file, proj, success)
-  getaudioinfo(file)
+local function finddrop(file, hash, proj, success)
   local rule, text, outfile = findrule(file)
   if rule == nil then
     debug_error("  一致するルールが見つかりませんでした")
-    table.insert(success, {src=file})
+    table.insert(success, {src=file, hash=hash})
     return
   end
   debug_print_verbose("ルールに一致: " .. rule.file .. " / 挿入先レイヤー: " .. rule.layer)
   drop(proj, outfile, text, rule)
-  table.insert(success, {src=file, dest=outfile})
+  table.insert(success, {src=file, hash=hash, dest=outfile})
   debug_print("  レイヤー " .. rule.layer .. " へドロップしました")
 end
 
@@ -29,7 +28,7 @@ function changed(files, sort, proj)
     else
       debug_print(file.path .. " " .. (file.trycount+1) .. "回目")
     end
-    local ok, err = pcall(finddrop, file.path, proj, success)
+    local ok, err = pcall(finddrop, file.path, file.hash, proj, success)
     if not ok then
       debug_error("  処理中にエラーが発生しました: " .. err)
     end

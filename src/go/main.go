@@ -5,6 +5,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"hash/fnv"
+	"io"
 	"log"
 	"math"
 	"os"
@@ -30,6 +32,7 @@ var version string
 
 type file struct {
 	Filepath string
+	Hash     string
 	ModDate  time.Time
 	TryCount int
 }
@@ -37,6 +40,11 @@ type file struct {
 type fileState struct {
 	Retry int
 	Stay  int
+}
+
+type sentFileState struct {
+	At   time.Time
+	Hash string
 }
 
 type colorizer interface {
@@ -73,29 +81,39 @@ func clearScreen() error {
 	return cmd.Run()
 }
 
-func verify(f *file) error {
-	txtFilePath := changeExt(f.Filepath, ".txt")
-	txt, err := os.OpenFile(txtFilePath, os.O_RDWR, 0666)
+func verifyAndCalcHash(wavPath string, txtPath string) (string, error) {
+	txt, err := os.OpenFile(txtPath, os.O_RDWR, 0666)
 	if err != nil {
-		return fmt.Errorf("テキストファイルが開けませんでした: %w", err)
+		return "", fmt.Errorf("テキストファイルが開けませんでした: %w", err)
 	}
 	defer txt.Close()
-	wav, err := os.OpenFile(f.Filepath, os.O_RDWR, 0666)
+	wav, err := os.OpenFile(wavPath, os.O_RDWR, 0666)
 	if err != nil {
-		return fmt.Errorf("Waveファイルが開けませんでした: %w", err)
+		return "", fmt.Errorf("waveファイルが開けませんでした: %w", err)
 	}
 	defer wav.Close()
 	r, wfe, err := wave.NewLimitedReader(wav)
 	if err != nil {
-		return fmt.Errorf("Waveファイルが正しく読み取れませんでした: %w", err)
+		return "", fmt.Errorf("waveファイルが読み取れませんでした: %w", err)
 	}
 	if r.N == 0 || wfe.Format.SamplesPerSec == 0 || wfe.Format.Channels == 0 || wfe.Format.BitsPerSample == 0 {
-		return fmt.Errorf("Waveファイルに記録されている値が不正です: %w", err)
+		return "", fmt.Errorf("waveファイルに記録されている値が不正です: %w", err)
 	}
-	return nil
+	if _, err := wav.Seek(0, io.SeekStart); err != nil {
+		return "", fmt.Errorf("waveファイルの読み取りカーソルを移動できませんでした: %w", err)
+	}
+	h := fnv.New32a()
+	if _, err := io.Copy(h, wav); err != nil {
+		return "", fmt.Errorf("waveファイルが読み取れませんでした: %w", err)
+	}
+	h2 := fnv.New32a()
+	if _, err := io.Copy(h2, txt); err != nil {
+		return "", fmt.Errorf("テキストファイルが読み取れませんでした: %w", err)
+	}
+	return string(h2.Sum(h.Sum(nil))), nil
 }
 
-func processFiles(L *lua.LState, files []file, sort string, recentChanged map[string]fileState, recentSent map[string]time.Time) (needRetry bool, err error) {
+func processFiles(L *lua.LState, files []file, sort string, recentChanged map[string]fileState, recentSent map[string]sentFileState) (needRetry bool, err error) {
 	var errStay error
 	defer func() {
 		for k, ct := range recentChanged {
@@ -114,18 +132,6 @@ func processFiles(L *lua.LState, files []file, sort string, recentChanged map[st
 		}
 	}()
 
-	// verify file can be accessed correctly
-	for _, f := range files {
-		errStay = verify(&f)
-		if errStay != nil {
-			log.Println(suppress.Renderln("  更新を検知しました。ファイルが利用可能になるのを待っています..."))
-			if verbose {
-				log.Println(suppress.Renderln("    原因:", errStay))
-			}
-			return
-		}
-	}
-
 	proj, err := readGCMZDropsData()
 	if err != nil {
 		if verbose {
@@ -142,6 +148,7 @@ func processFiles(L *lua.LState, files []file, sort string, recentChanged map[st
 	for _, f := range files {
 		file := L.NewTable()
 		file.RawSetString("path", lua.LString(f.Filepath))
+		file.RawSetString("hash", lua.LString(f.Hash))
 		file.RawSetString("trycount", lua.LNumber(f.TryCount))
 		file.RawSetString("maxretry", lua.LNumber(maxRetry))
 		file.RawSetString("moddate", lua.LNumber(float64(f.ModDate.Unix())+(float64(f.ModDate.Nanosecond())/1e9)))
@@ -181,7 +188,12 @@ func processFiles(L *lua.LState, files []file, sort string, recentChanged map[st
 		}
 		// remove it from the candidate list regardless of success or failure.
 		src := tbl.RawGetString("src").String()
+		hash := tbl.RawGetString("hash").String()
 		delete(recentChanged, src)
+		recentSent[src] = sentFileState{
+			At:   now,
+			Hash: hash,
+		}
 
 		destV := tbl.RawGetString("dest")
 		if destV.Type() != lua.LTString {
@@ -191,7 +203,10 @@ func processFiles(L *lua.LState, files []file, sort string, recentChanged map[st
 		// files that have already been processed may be subject to processing again.
 		// put dest on recentSent to prevent it.
 		dest := destV.String()
-		recentSent[dest] = now
+		recentSent[dest] = sentFileState{
+			At:   now,
+			Hash: hash,
+		}
 		delete(recentChanged, dest)
 	}
 	L.Pop(1)
@@ -399,7 +414,7 @@ func tempSetting(tempDir string, projectDir string) (*setting, error) {
 	return newSetting(strings.NewReader(``), tempDir, projectDir)
 }
 
-func process(watcher *fsnotify.Watcher, settingWatcher *fsnotify.Watcher, settingFile string, recentChanged map[string]fileState, recentSent map[string]time.Time, loop int) error {
+func process(watcher *fsnotify.Watcher, settingWatcher *fsnotify.Watcher, settingFile string, recentChanged map[string]fileState, recentSent map[string]sentFileState, loop int) error {
 	exePath, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("exe ファイルのパスが取得できません: %w", err)
@@ -498,8 +513,8 @@ func process(watcher *fsnotify.Watcher, settingWatcher *fsnotify.Watcher, settin
 				return clearScreen()
 			}
 			now := time.Now()
-			for k := range recentSent {
-				if now.Sub(recentSent[k]) > resendProtectDuration {
+			for k, st := range recentSent {
+				if now.Sub(st.At) > resendProtectDuration {
 					delete(recentSent, k)
 				}
 			}
@@ -516,24 +531,27 @@ func process(watcher *fsnotify.Watcher, settingWatcher *fsnotify.Watcher, settin
 			}
 		case <-timer.C:
 			var files []file
-			for k, fState := range recentChanged {
+			var needRetry bool
+			for wavPath, fState := range recentChanged {
 				if verbose {
-					log.Println(suppress.Renderln("送信ファイル候補検証:", k))
+					log.Println(suppress.Renderln("送信ファイル候補検証:", wavPath))
 				}
-				if _, found := recentSent[k]; found {
-					if verbose {
-						log.Println(suppress.Renderln("  つい最近送ったファイルなので、重複送信回避のために無視します"))
-					}
-					delete(recentChanged, k)
+				if fState.Stay == maxStay {
+					log.Println(warn.Renderln("  以下のファイルは長時間準備が整わなかったので一旦諦めます"))
+					log.Println("    ", wavPath)
+					delete(recentChanged, wavPath)
 					continue
 				}
-				s1, e1 := os.Stat(k)
-				s2, e2 := os.Stat(changeExt(k, ".txt"))
+
+				txtPath := changeExt(wavPath, ".txt")
+				s1, e1 := os.Stat(wavPath)
+				s2, e2 := os.Stat(txtPath)
 				if e1 != nil || e2 != nil {
 					if verbose {
-						log.Println(suppress.Renderln("  *.wav と *.txt が揃ってないので無視します"))
+						log.Println(suppress.Renderln("  *.wav と *.txt が揃ってないので保留します"))
 					}
-					delete(recentChanged, k)
+					fState.Stay++
+					recentChanged[wavPath] = fState
 					continue
 				}
 				s1Mod := s1.ModTime()
@@ -541,21 +559,45 @@ func process(watcher *fsnotify.Watcher, settingWatcher *fsnotify.Watcher, settin
 				if setting.Delta > 0 {
 					if math.Abs(s1Mod.Sub(s2Mod).Seconds()) > setting.Delta {
 						if verbose {
-							log.Println(suppress.Renderln("  *.wav と *.txt の更新日時の差が", setting.Delta, "秒以上なので無視します"))
+							log.Println(suppress.Renderln("  *.wav と *.txt の更新日時の差が", setting.Delta, "秒以上なので保留します"))
 						}
-						delete(recentChanged, k)
+						fState.Stay++
+						recentChanged[wavPath] = fState
 						continue
 					}
+				}
+				hash, err := verifyAndCalcHash(wavPath, txtPath)
+				if err != nil {
+					if verbose {
+						log.Println(suppress.Renderln("  まだファイルの準備が整わないので保留にします"))
+						log.Println(suppress.Renderln("    理由:", err))
+					}
+					fState.Stay++
+					recentChanged[wavPath] = fState
+					d := 500 * time.Millisecond
+					at := time.Now().Add(d)
+					if at.After(timerAt) {
+						timerAt = at
+						timer.Reset(d)
+					}
+					needRetry = true
+				}
+				if st, found := recentSent[wavPath]; found && st.Hash == hash {
+					if verbose {
+						log.Println(suppress.Renderln("  つい最近送ったファイルなので、重複送信回避のために無視します"))
+					}
+					delete(recentChanged, wavPath)
+					continue
 				}
 				if verbose {
 					log.Println(suppress.Renderln("このファイルはルール検索対象です"))
 				}
-				files = append(files, file{k, s1Mod, fState.Retry})
+				files = append(files, file{wavPath, hash, s1Mod, fState.Retry})
 			}
-			if len(files) == 0 {
+			if needRetry || len(files) == 0 {
 				continue
 			}
-			needRetry, err := processFiles(L, files, setting.Sort, recentChanged, recentSent)
+			needRetry, err = processFiles(L, files, setting.Sort, recentChanged, recentSent)
 			if err != nil {
 				log.Println("ファイルの処理中にエラーが発生しました:", err)
 			}
@@ -623,7 +665,7 @@ func main() {
 	defer watcher.Close()
 
 	recentChanged := map[string]fileState{}
-	recentSent := map[string]time.Time{}
+	recentSent := map[string]sentFileState{}
 	for i := 0; ; i++ {
 		log.Println(caption.Renderln("かんしくん"), version)
 		if verbose {
