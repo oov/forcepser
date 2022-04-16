@@ -25,6 +25,7 @@ import (
 const maxRetry = 10
 const maxStay = 20
 const resendProtectDuration = 5 * time.Second
+const writeNotificationDeadline = 5 * time.Second
 
 var verbose bool
 var preventClear bool
@@ -271,19 +272,31 @@ func watch(ctx context.Context, watcher *fsnotify.Watcher, settingWatcher *fsnot
 				}
 				continue
 			}
-			if freshness > 0 {
-				st, err := os.Stat(event.Name)
-				if err != nil {
+			st, err := os.Stat(event.Name)
+			if err != nil {
+				if verbose {
+					log.Println(suppress.Renderln("  更新日時の取得に失敗したので何もしません"))
+				}
+				continue
+			}
+			if event.Op&fsnotify.Write == fsnotify.Write {
+				// Even if freshness == 0, verify when notified by Write.
+				// Because Write notification is also sent in the case of a file attribute change or modify zone identifier.
+				// See: https://github.com/oov/forcepser/issues/10
+				if time.Since(st.ModTime()) > writeNotificationDeadline {
 					if verbose {
-						log.Println(suppress.Renderln("  更新日時の取得に失敗したので何もしません"))
+						log.Println(suppress.Renderln("  ファイル変更通知がありましたが更新日時が", writeNotificationDeadline, "以上前なので何もしません"))
 					}
 					continue
 				}
-				if math.Abs(time.Since(st.ModTime()).Seconds()) > freshness {
-					if verbose {
-						log.Println(suppress.Renderln("  更新日時が", freshness, "秒以上前なので何もしません"))
+			} else {
+				if freshness > 0 {
+					if math.Abs(time.Since(st.ModTime()).Seconds()) > freshness {
+						if verbose {
+							log.Println(suppress.Renderln("  更新日時が", freshness, "秒以上前なので何もしません"))
+						}
+						continue
 					}
-					continue
 				}
 			}
 			if verbose {
