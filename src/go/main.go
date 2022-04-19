@@ -560,22 +560,24 @@ func process(watcher *fsnotify.Watcher, settingWatcher *fsnotify.Watcher, settin
 				s1, e1 := os.Stat(wavPath)
 				s2, e2 := os.Stat(txtPath)
 				if e1 != nil || e2 != nil {
+					// Whenever this issue is resolved, an Create/Write event will occur.
+					// So we ignore it for now.
 					if verbose {
-						log.Println(suppress.Renderln("  *.wav と *.txt が揃ってないので保留します"))
+						log.Println(suppress.Renderln("  *.wav と *.txt が揃ってないので無視します"))
 					}
-					fState.Stay++
-					recentChanged[wavPath] = fState
+					delete(recentChanged, wavPath)
 					continue
 				}
 				s1Mod := s1.ModTime()
 				s2Mod := s2.ModTime()
 				if setting.Delta > 0 {
+					// Whenever this issue is resolved, an Write event will occur.
+					// So we ignore it for now.
 					if math.Abs(s1Mod.Sub(s2Mod).Seconds()) > setting.Delta {
 						if verbose {
-							log.Println(suppress.Renderln("  *.wav と *.txt の更新日時の差が", setting.Delta, "秒以上なので保留します"))
+							log.Println(suppress.Renderln("  *.wav と *.txt の更新日時の差が", setting.Delta, "秒以上なので無視します"))
 						}
-						fState.Stay++
-						recentChanged[wavPath] = fState
+						delete(recentChanged, wavPath)
 						continue
 					}
 				}
