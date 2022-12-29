@@ -94,7 +94,7 @@ FAQ
 バイナリのビルドについて
 ------------------------
 
-かんしくんは [MSYS2](https://www.msys2.org/) + MINGW32 上で開発しています。  
+かんしくんは [MSYS2](https://www.msys2.org/) + CLANG64 上で開発しています。  
 ビルド方法や必要になるパッケージなどは [GitHub Actions の設定ファイル](https://github.com/oov/forcepser/blob/main/.github/workflows/releaser.yml) を参考にしてください。
 
 Credits
