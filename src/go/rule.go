@@ -87,6 +87,8 @@ type setting struct {
 	Sort      string
 	SortDelay float64
 
+	FairyCall string
+
 	projectDir  string
 	dirReplacer *strings.Replacer
 }
@@ -157,6 +159,8 @@ func newSetting(r io.Reader, tempDir string, projectDir string) (*setting, error
 		s.Sort = "moddate"
 	}
 	s.SortDelay = getFloat64("sortdelay", config, 0.1)
+
+	s.FairyCall = getString("fairycall", config, "")
 
 	for _, tr := range getSubTreeArray("rule", config) {
 		var r rule
