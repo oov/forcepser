@@ -99,6 +99,69 @@ func findMainWindowControls(elems *internal.Elements, index int, out *mainWindow
 	return nil
 }
 
+func findMainWindowControls2(elems *internal.Elements, index int, out *mainWindow) error {
+	if index < 3 || index >= elems.Len {
+		return internal.ErrElementNotFound
+	}
+
+	editElem, err := elems.Get(index)
+	if err != nil {
+		return fmt.Errorf("failed to get edit element: %w", err)
+	}
+	defer editElem.Release()
+
+	ctrlType, err := editElem.GetControlType()
+	if err != nil {
+		return fmt.Errorf("failed to get edit control type: %w", err)
+	}
+	if ctrlType != win32.UIA_EditControlTypeId {
+		return internal.ErrElementNotFound
+	}
+
+	buttonElem, err := elems.Get(index - 2)
+	if err != nil {
+		return fmt.Errorf("failed to get image button element: %w", err)
+	}
+	defer buttonElem.Release()
+
+	ctrlType, err = buttonElem.GetControlType()
+	if err != nil {
+		return fmt.Errorf("failed to get image button control type: %w", err)
+	}
+	if ctrlType != win32.UIA_ButtonControlTypeId {
+		return internal.ErrElementNotFound
+	}
+	name, err := buttonElem.GetName()
+	if err != nil {
+		return fmt.Errorf("failed to get image button control name: %w", err)
+	}
+	if name != mainWindowIconButtonName {
+		return internal.ErrElementNotFound
+	}
+
+	comboElem, err := elems.Get(index - 3)
+	if err != nil {
+		return fmt.Errorf("failed to get combo box element: %w", err)
+	}
+	defer comboElem.Release()
+
+	ctrlType, err = comboElem.GetControlType()
+	if err != nil {
+		return fmt.Errorf("failed to get combo box control type: %w", err)
+	}
+	if ctrlType != win32.UIA_ButtonControlTypeId {
+		return internal.ErrElementNotFound
+	}
+
+	comboElem.AddRef()
+	out.combo = comboElem
+	editElem.AddRef()
+	out.edit = editElem
+	buttonElem.AddRef()
+	out.button = buttonElem
+	return nil
+}
+
 func newMainWindow(uia *internal.UIAutomation, hwnd win32.HWND) (*mainWindow, error) {
 	// verify window
 	var conds []*win32.IUIAutomationCondition
@@ -164,15 +227,22 @@ func newMainWindow(uia *internal.UIAutomation, hwnd win32.HWND) (*mainWindow, er
 	r := mainWindow{
 		window: window,
 	}
-	for i := 0; i < elems.Len; i++ {
+	for i := 0; i < elems.Len && r.edit == nil; i++ {
 		err = findMainWindowControls(elems, i, &r)
 		if err != nil {
 			if !errors.Is(err, internal.ErrElementNotFound) {
 				log.Printf("failed to get elements: %v", err)
 			}
+		}
+		if err == nil {
 			continue
 		}
-		break
+		err = findMainWindowControls2(elems, i, &r)
+		if err != nil {
+			if !errors.Is(err, internal.ErrElementNotFound) {
+				log.Printf("failed to get elements: %v", err)
+			}
+		}
 	}
 	if r.combo == nil || r.edit == nil || r.button == nil {
 		return nil, fmt.Errorf("main window controls not found")
