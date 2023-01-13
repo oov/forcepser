@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"syscall"
+	"unsafe"
 
 	"github.com/zzl/go-win32api/win32"
 	"golang.org/x/sys/windows"
@@ -41,6 +42,22 @@ func (elem *Element) GetCurrentPropertyStringValue(propertyID int32) (string, er
 	return value, nil
 }
 
+func (elem *Element) GetCurrentPropertyRectValue(propertyID int32) ([4]float64, error) {
+	var v win32.VARIANT
+	if hr := elem.GetCurrentPropertyValue(propertyID, &v); win32.FAILED(hr) {
+		return [4]float64{}, fmt.Errorf("IUIAutomationElement.GetCurrentPropertyStringValue failed: %s", win32.HRESULT_ToString(hr))
+	}
+	defer win32.VariantClear(&v)
+	var value [4]float64
+	for i := int32(0); i < 4; i++ {
+		var f float64
+		if hr := win32.SafeArrayGetElement(v.ParrayVal(), &i, unsafe.Pointer(&f)); win32.FAILED(hr) {
+			return [4]float64{}, fmt.Errorf("SafeArrayGetElement failed: %s", win32.HRESULT_ToString(hr))
+		}
+		value[i] = f
+	}
+	return value, nil
+}
 func (elem *Element) FindFirst(scope win32.TreeScope, cond *win32.IUIAutomationCondition) (*Element, error) {
 	var found *win32.IUIAutomationElement
 	if hr := elem.IUIAutomationElement.FindFirst(scope, cond, &found); win32.FAILED(hr) {

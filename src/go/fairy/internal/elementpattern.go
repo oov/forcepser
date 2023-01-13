@@ -92,6 +92,7 @@ func (elem *Element) GetTextViaValuePattern() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to get IUIAutomationValuePattern: %w", err)
 	}
+	defer vp.Release()
 	var bs win32.BSTR
 	if hr := vp.Get_CurrentValue(&bs); win32.FAILED(hr) {
 		return "", fmt.Errorf("IUIAutomationValuePattern.Get_CurrentValue failed: %s", win32.HRESULT_ToString(hr))
@@ -214,4 +215,46 @@ func (elem *Element) GetFirstSelection() (*win32.IUIAutomationTextRange, error) 
 		return nil, fmt.Errorf("IUIAutomationTextRangeArray.GetElement failed: %s", win32.HRESULT_ToString(hr))
 	}
 	return tr, nil
+}
+
+func (elem *Element) DoDefaultAction() error {
+	lia, err := elem.GetCurrentLegacyIAccessiblePattern()
+	if err != nil {
+		return fmt.Errorf("failed to get IUIAutomationLegacyIAccessiblePattern: %w", err)
+	}
+	defer lia.Release()
+	if hr := lia.DoDefaultAction(); win32.FAILED(hr) {
+		return fmt.Errorf("IUIAutomationLegacyIAccessiblePattern.DoDefaultAction failed: %s", win32.HRESULT_ToString(hr))
+	}
+	return nil
+}
+
+func (elem *Element) ShowContextMenuViaIUIAutomationElement3() error {
+	var e3 *win32.IUIAutomationElement3
+	if hr := elem.IUIAutomationElement.QueryInterface(&win32.IID_IUIAutomationElement3, unsafe.Pointer(&e3)); win32.FAILED(hr) {
+		return fmt.Errorf("IUnknown.QueryInterface failed: %s", win32.HRESULT_ToString(hr))
+	}
+	if e3 == nil {
+		return fmt.Errorf("IUIAutomationElement3 not found")
+	}
+	defer e3.Release()
+	if hr := e3.ShowContextMenu(); win32.FAILED(hr) {
+		return fmt.Errorf("IUIAutomationElement3.ShowContextMenu failed: %s", win32.HRESULT_ToString(hr))
+	}
+	return nil
+}
+
+func (elem *Element) ShowContextMenuViaMouseClick(window win32.HWND) error {
+	r, err := elem.GetCurrentPropertyRectValue(win32.UIA_BoundingRectanglePropertyId)
+	if err != nil {
+		return fmt.Errorf("failed to get BoundingRect: %w", err)
+	}
+	pt := win32.POINT{
+		X: int32(r[0]),
+		Y: int32(r[1]),
+	}
+	win32.ScreenToClient(window, &pt)
+	win32.PostMessage(window, win32.WM_RBUTTONDOWN, win32.WPARAM(win32.MK_RBUTTON), win32.LPARAM(win32.MAKELONG(uint16(pt.X), uint16(pt.Y))))
+	win32.PostMessage(window, win32.WM_RBUTTONUP, win32.WPARAM(win32.MK_RBUTTON), win32.LPARAM(win32.MAKELONG(uint16(pt.X), uint16(pt.Y))))
+	return nil
 }

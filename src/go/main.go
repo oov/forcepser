@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/oov/forcepser/fairy"
-	"github.com/oov/forcepser/fairy/voicepeak/v1"
+	"github.com/oov/forcepser/fairy/voicepeak/v2"
 	"github.com/oov/forcepser/hotkey"
 
 	"github.com/fsnotify/fsnotify"
