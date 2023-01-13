@@ -249,11 +249,10 @@ func (elem *Element) ShowContextMenuViaMouseClick(window win32.HWND) error {
 	if err != nil {
 		return fmt.Errorf("failed to get BoundingRect: %w", err)
 	}
-	pt := win32.POINT{
-		X: int32(r[0]),
-		Y: int32(r[1]),
-	}
-	win32.ScreenToClient(window, &pt)
+	var pt win32.POINT
+	win32.ClientToScreen(window, &pt)
+	pt.X = int32(r[0]) - pt.X + 2
+	pt.Y = int32(r[1]) - pt.Y + 2
 	win32.PostMessage(window, win32.WM_RBUTTONDOWN, win32.WPARAM(win32.MK_RBUTTON), win32.LPARAM(win32.MAKELONG(uint16(pt.X), uint16(pt.Y))))
 	win32.PostMessage(window, win32.WM_RBUTTONUP, win32.WPARAM(win32.MK_RBUTTON), win32.LPARAM(win32.MAKELONG(uint16(pt.X), uint16(pt.Y))))
 	return nil
