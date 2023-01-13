@@ -51,7 +51,7 @@ func findMainWindowControls(elems *internal.Elements, index int, out *mainWindow
 	if err != nil {
 		return fmt.Errorf("failed to get edit control type: %w", err)
 	}
-	if ctrlType != win32.UIA_EditControlTypeId {
+	if ctrlType != win32.UIA_EditControlTypeId && ctrlType != win32.UIA_TextControlTypeId {
 		return internal.ErrElementNotFound
 	}
 
@@ -114,7 +114,7 @@ func findMainWindowControls2(elems *internal.Elements, index int, out *mainWindo
 	if err != nil {
 		return fmt.Errorf("failed to get edit control type: %w", err)
 	}
-	if ctrlType != win32.UIA_EditControlTypeId {
+	if ctrlType != win32.UIA_EditControlTypeId && ctrlType != win32.UIA_TextControlTypeId {
 		return internal.ErrElementNotFound
 	}
 
