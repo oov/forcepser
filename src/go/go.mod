@@ -1,6 +1,6 @@
 module github.com/oov/forcepser
 
-go 1.16
+go 1.20
 
 require (
 	github.com/fsnotify/fsnotify v1.6.0
@@ -13,3 +13,5 @@ require (
 	golang.org/x/sys v0.5.0
 	golang.org/x/text v0.7.0
 )
+
+require github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
