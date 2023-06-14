@@ -44,12 +44,42 @@ func luaExecute(path string, text string) lua.LGFunction {
 		defer os.Remove(tempFile)
 		replacer := strings.NewReplacer("%BEFORE%", path, "%AFTER%", tempFile)
 		var cmds []string
+		var useIn bool
+		var useOut bool
 		for i := 1; i < nargs+1; i++ {
-			cmds = append(cmds, replacer.Replace(L.ToString(i)))
+			s := L.ToString(i)
+			if s == "<IN>" {
+				useIn = true
+				continue
+			}
+			if s == "<OUT>" {
+				useOut = true
+				continue
+			}
+			cmds = append(cmds, replacer.Replace(s))
 		}
-		if err := exec.Command(cmds[0], cmds[1:]...).Run(); err != nil {
-			L.RaiseError("外部コマンド実行に失敗しました: %v", err)
-		}
+		func() {
+			c := exec.Command(cmds[0], cmds[1:]...)
+			if useIn {
+				inFile, err := os.Open(path)
+				if err != nil {
+					L.RaiseError("入力ファイルが開けません: %v", err)
+				}
+				defer inFile.Close()
+				c.Stdin = inFile
+			}
+			if useOut {
+				outFile, err := os.Create(tempFile)
+				if err != nil {
+					L.RaiseError("出力ファイルが開けません: %v", err)
+				}
+				defer outFile.Close()
+				c.Stdout = outFile
+			}
+			if err := c.Run(); err != nil {
+				L.RaiseError("外部コマンド実行に失敗しました: %v", err)
+			}
+		}()
 		f, err := os.Open(tempFile)
 		if err == nil {
 			defer f.Close()
