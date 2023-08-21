@@ -26,7 +26,6 @@ jobs:
           install: >-
             git
             mingw-w64-${{ matrix.arch }}-cmake
-            mingw-w64-${{ matrix.arch }}-go
             mingw-w64-${{ matrix.arch }}-ninja
       - name: Run ninja
         shell: msys2 {0}

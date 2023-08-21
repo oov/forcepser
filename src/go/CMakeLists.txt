@@ -1,3 +1,25 @@
+set(GO_URL "https://go.dev/dl/go1.20.7.windows-amd64.zip")
+string(REGEX MATCH "[^/]+$" GO_ARCHIVE_NAME "${GO_URL}")
+set(GO_ARCHIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/${GO_ARCHIVE_NAME}")
+string(REGEX REPLACE "\\.[^.]+$" "" GO_ARCHIVE_NOEXT "${GO_ARCHIVE_NAME}")
+set(GO_DIR "${CMAKE_CURRENT_BINARY_DIR}/go")
+set(GO_EXE "${GO_DIR}/bin/go.exe")
+if(NOT EXISTS "${GO_ARCHIVE_PATH}")
+  file(DOWNLOAD "${GO_URL}" "${GO_ARCHIVE_PATH}")
+endif()
+if(NOT EXISTS "${GO_DIR}")
+  execute_process(
+    COMMAND ${CMAKE_COMMAND} -E tar xzf ${GO_ARCHIVE_PATH}
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+  )
+endif()
+
+add_custom_target(${PROJECT_NAME}_format
+  COMMAND ${CMAKE_COMMAND} -E env GOROOT="${GO_DIR}" ${GO_EXE} fmt
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+  USES_TERMINAL
+)
+
 find_package(Git REQUIRED)
 execute_process(
   COMMAND ${GIT_EXECUTABLE} tag --points-at HEAD
@@ -34,8 +56,8 @@ add_custom_target(copy_related_files
   COMMAND ${CMAKE_COMMAND} -E copy "${PROJECT_SOURCE_DIR}/src/setting.txt-template-old" "${CMAKE_BINARY_DIR}/${EXPORT_DIR}/setting.txt-template-old"
 )
 
-add_custom_target(forcepser_exe ALL COMMAND ${CMAKE_COMMAND} -E env GOROOT="$ENV{MINGW_PREFIX}/lib/go"
-  go build -x
+add_custom_target(forcepser_exe ALL COMMAND ${CMAKE_COMMAND} -E env GOROOT="${GO_DIR}"
+  "${GO_EXE}" build -x
     "-ldflags=\"-s -X \\\"main.version=${git_tag} ( ${git_revision} )\\\"\""
     -o "${CMAKE_BINARY_DIR}/${EXPORT_DIR}/forcepser.exe"
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
