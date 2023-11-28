@@ -1,8 +1,9 @@
 # Changelog
 
-## 1.6.0beta1 2023-11-28
+## 1.6.0beta1 2023-11-29
 
 - VoiSona Talk Editor 1.1.5.1 用 fairycall を実装
+- `[[asas]]` で `flags = 0` のプロセスに対してはフックしないように改善
 
 ## 1.6.0alpha5 2023-06-15
 
