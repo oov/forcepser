@@ -264,6 +264,11 @@ func (mw *mainWindow) updateCheckBoxes(uia *internal.UIAutomation) error {
 
 			checkBox, err := checkBoxContainer.FindFirst(win32.TreeScope_Children, cndCheckBox)
 			if err != nil {
+				if err == internal.ErrElementNotFound && isactive == 0 {
+					// not found but not active, can be ignored.
+					// occurs when the sentence is empty.
+					return nil
+				}
 				return fmt.Errorf("failed to get checkbox: %w", err)
 			}
 			defer checkBox.Release()
