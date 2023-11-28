@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0beta1 2023-11-28
+
+- VoiSona Talk Editor 1.1.5.1 用 fairycall を実装
+
 ## 1.6.0alpha5 2023-06-15
 
 - modifier の `execute` 関数に特別な識別子 `<IN>` と `<OUT>` を追加
