@@ -708,6 +708,13 @@ func process(watcher *fsnotify.Watcher, settingWatcher *fsnotify.Watcher, settin
 }
 
 func main() {
+	if _, ok := os.LookupEnv("ASAS"); ok {
+		// asas emulation mode
+		if err := emulateAsas(); err != nil {
+			log.Fatalln(err)
+		}
+		return
+	}
 	if hr := win32.CoInitializeEx(nil, win32.COINIT_MULTITHREADED); win32.FAILED(hr) {
 		log.Fatalln("CoInitializeEx に失敗しました:", win32.HRESULT_ToString(hr))
 	}

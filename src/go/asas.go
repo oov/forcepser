@@ -2,14 +2,15 @@ package main
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"hash/fnv"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
+	"syscall"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -151,26 +152,96 @@ func (a *asas) ConfirmAndRun(updateOnly bool) (bool, error) {
 }
 
 func (a *asas) Run() (bool, error) {
-	exePath, err := os.Executable()
-	if err != nil {
-		return false, fmt.Errorf("exe ファイルのパスが取得できません: %w", err)
-	}
-	cmd := exec.Command(filepath.Join(filepath.Dir(exePath), "asas", "asas.exe"), a.Exe)
 	asasName, err := a.getASASName()
 	if err != nil {
 		return false, err
 	}
-	cmd.Env = append(os.Environ(),
-		"ASAS="+asasName,
-		"ASAS_FILTER="+a.Filter,
-		"ASAS_FOLDER="+a.ExpandedFolder(),
-		"ASAS_FORMAT="+a.Format,
-		"ASAS_FLAGS="+strconv.Itoa(a.Flags),
-	)
-	cmd.Dir = filepath.Dir(a.Exe)
-	if err = cmd.Start(); err != nil {
-		return false, fmt.Errorf("asas.exe の実行に失敗しました: %w", err)
+	exePath, err := os.Executable()
+	if err != nil {
+		return false, fmt.Errorf("exe ファイルのパスが取得できません: %w", err)
 	}
-	go cmd.Wait()
+	if a.Flags != 0 {
+		exePath = filepath.Join(filepath.Dir(exePath), "asas", "asas.exe")
+	}
+	proc, err := os.StartProcess(exePath, []string{exePath, a.Exe}, &os.ProcAttr{
+		Dir: filepath.Dir(a.Exe),
+		Env: append(os.Environ(),
+			"ASAS="+asasName,
+			"ASAS_FILTER="+a.Filter,
+			"ASAS_FOLDER="+a.ExpandedFolder(),
+			"ASAS_FORMAT="+a.Format,
+			"ASAS_FLAGS="+strconv.Itoa(a.Flags),
+		),
+		Files: []*os.File{nil, nil, nil},
+		Sys: &syscall.SysProcAttr{
+			CreationFlags: windows.CREATE_DEFAULT_ERROR_MODE | windows.CREATE_NO_WINDOW,
+		},
+	})
+	if err != nil {
+		return false, fmt.Errorf("プロセスの開始に失敗しました: %w", err)
+	}
+	err = proc.Release()
+	if err != nil {
+		return false, fmt.Errorf("failed to release process resources: %w", err)
+	}
 	return true, nil
+}
+
+func emulateAsas() error {
+	if len(os.Args) < 2 {
+		return errors.New("no arguments")
+	}
+	type AsasSettings struct {
+		APIVersion uint32
+		Flags      uint32
+		Filter     [windows.MAX_PATH]uint16
+		Folder     [windows.MAX_PATH]uint16
+		Format     [windows.MAX_PATH]uint16
+	}
+	asasName := os.Getenv("ASAS")
+	fmoName, err := windows.UTF16PtrFromString("ASAS-" + asasName)
+	if err != nil {
+		return fmt.Errorf("failed to create mutex name: %w", err)
+	}
+	fmo, err := windows.CreateFileMapping(windows.InvalidHandle, nil, windows.PAGE_READWRITE, 0, uint32(unsafe.Sizeof(AsasSettings{})), fmoName)
+	if err != nil {
+		if errors.Is(err, windows.ERROR_ALREADY_EXISTS) {
+			windows.CloseHandle(fmo)
+		}
+		return fmt.Errorf("failed to create file mapping: %w", err)
+	}
+	defer windows.CloseHandle(fmo)
+
+	mutexName, err := windows.UTF16PtrFromString("ASAS-" + asasName + "-Mutex")
+	if err != nil {
+		return fmt.Errorf("failed to create mutex name: %w", err)
+	}
+	mutex, err := windows.CreateMutex(nil, false, mutexName)
+	if err != nil {
+		if errors.Is(err, windows.ERROR_ALREADY_EXISTS) {
+			windows.CloseHandle(mutex)
+		}
+		return fmt.Errorf("failed to create mutex: %w", err)
+	}
+	defer windows.CloseHandle(mutex)
+
+	dir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current directory: %w", err)
+	}
+	proc, err := os.StartProcess(os.Args[1], os.Args[1:], &os.ProcAttr{
+		Dir:   dir,
+		Files: []*os.File{nil, nil, nil},
+		Sys: &syscall.SysProcAttr{
+			CreationFlags: windows.CREATE_DEFAULT_ERROR_MODE,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to start process: %w", err)
+	}
+	_, err = proc.Wait()
+	if err != nil {
+		return fmt.Errorf("failed to wait for process: %w", err)
+	}
+	return nil
 }
