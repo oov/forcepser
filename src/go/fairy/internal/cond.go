@@ -62,3 +62,15 @@ func (uia *UIAutomation) CreateInt32PropertyCondition(propertyId int32, val int3
 	defer win32.VariantClear(&v)
 	return uia.CreatePropertyConditionEx(propertyId, &v, 0)
 }
+
+func (uia *UIAutomation) CreateBoolPropertyCondition(propertyId int32, val bool) (*win32.IUIAutomationCondition, error) {
+	var v win32.VARIANT
+	v.Vt = uint16(win32.VT_BOOL)
+	if val {
+		*v.BoolVal() = win32.VARIANT_TRUE
+	} else {
+		*v.BoolVal() = win32.VARIANT_FALSE
+	}
+	defer win32.VariantClear(&v)
+	return uia.CreatePropertyConditionEx(propertyId, &v, 0)
+}

@@ -23,6 +23,21 @@ func (elem *Element) GetCurrentInvokePattern() (*win32.IUIAutomationInvokePatter
 	return intf, nil
 }
 
+func (elem *Element) GetCurrentTogglePattern() (*win32.IUIAutomationTogglePattern, error) {
+	hasInvoke, err := elem.GetCurrentPropertyInt32Value(win32.UIA_IsTogglePatternAvailablePropertyId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get UIA_IsTogglePatternAvailablePropertyId property")
+	}
+	if hasInvoke == 0 {
+		return nil, fmt.Errorf("element does not have TogglePattern")
+	}
+	var intf *win32.IUIAutomationTogglePattern
+	if hr := elem.IUIAutomationElement.GetCurrentPatternAs(win32.UIA_TogglePatternId, &win32.IID_IUIAutomationTogglePattern, unsafe.Pointer(&intf)); win32.FAILED(hr) || intf == nil {
+		return nil, fmt.Errorf("IUIAutomationElement.GetCurrentPatternAs failed: %s", win32.HRESULT_ToString(hr))
+	}
+	return intf, nil
+}
+
 func (elem *Element) GetCurrentTextPattern() (*win32.IUIAutomationTextPattern, error) {
 	has, err := elem.GetCurrentPropertyInt32Value(win32.UIA_IsTextPatternAvailablePropertyId)
 	if err != nil {
@@ -81,13 +96,33 @@ func (elem *Element) Invoke() error {
 	return nil
 }
 
-func (elem *Element) GetTextViaValuePattern() (string, error) {
-	tp, err := elem.GetCurrentTextPattern()
+func (elem *Element) SetToggleValue(v win32.ToggleState) error {
+	tp, err := elem.GetCurrentTogglePattern()
 	if err != nil {
-		return "", fmt.Errorf("failed to get IUIAutomationTextPattern: %w", err)
+		return fmt.Errorf("failed to get IUIAutomationTogglePattern: %w", err)
 	}
 	defer tp.Release()
 
+	var initial win32.ToggleState
+	if hr := tp.Get_CurrentToggleState(&initial); win32.FAILED(hr) {
+		return fmt.Errorf("IUIAutomationTogglePattern.Get_CurrentToggleState failed: %s", win32.HRESULT_ToString(hr))
+	}
+	for i := 0; i < 3; i++ {
+		if hr := tp.Toggle(); win32.FAILED(hr) {
+			return fmt.Errorf("IUIAutomationTogglePattern.Toggle failed: %s", win32.HRESULT_ToString(hr))
+		}
+		var current win32.ToggleState
+		if hr := tp.Get_CurrentToggleState(&current); win32.FAILED(hr) {
+			return fmt.Errorf("IUIAutomationTogglePattern.Get_CurrentToggleState failed: %s", win32.HRESULT_ToString(hr))
+		}
+		if current == v {
+			return nil
+		}
+	}
+	return fmt.Errorf("failed to set toggle value: %v -> %v", initial, v)
+}
+
+func (elem *Element) GetTextViaValuePattern() (string, error) {
 	vp, err := elem.GetCurrentValuePattern()
 	if err != nil {
 		return "", fmt.Errorf("failed to get IUIAutomationValuePattern: %w", err)

@@ -17,6 +17,7 @@ import (
 
 	"github.com/oov/forcepser/fairy"
 	"github.com/oov/forcepser/fairy/voicepeak/v2"
+	"github.com/oov/forcepser/fairy/voisonatalk/v1"
 	"github.com/oov/forcepser/hotkey"
 
 	"github.com/fsnotify/fsnotify"
@@ -264,7 +265,7 @@ func watchFairyCall(ctx context.Context, notify chan<- map[string]struct{}, hk *
 	for {
 		select {
 		case complete := <-hk.Notify:
-			if err := (fairy.Fairies{voicepeak.New()}).Execute(namer); err != nil {
+			if err := (fairy.Fairies{voicepeak.New(), voisonatalk.New()}).Execute(namer); err != nil {
 				if !errors.Is(err, fairy.ErrTargetNotFound) {
 					log.Println(warn.Renderln("  フェアリー: 処理を完遂できませんでした:", err))
 				} else {
