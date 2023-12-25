@@ -71,18 +71,19 @@ func (r *rule) ExistsDir() bool {
 }
 
 type setting struct {
-	BaseDir    string
-	FileMove   moveType
-	DeleteText bool
-	Delta      float64
-	DestDir    string
-	Freshness  float64
-	MoveDelay  float64
-	ExoFile    string
-	LuaFile    string
-	Padding    int
-	Rule       []rule
-	Asas       []asas
+	AcceptEmptyText bool
+	BaseDir         string
+	FileMove        moveType
+	DeleteText      bool
+	Delta           float64
+	DestDir         string
+	Freshness       float64
+	MoveDelay       float64
+	ExoFile         string
+	LuaFile         string
+	Padding         int
+	Rule            []rule
+	Asas            []asas
 
 	Sort      string
 	SortDelay float64
@@ -150,6 +151,7 @@ func newSetting(r io.Reader, tempDir string, projectDir string) (*setting, error
 		s.FileMove = moveType("off")
 	}
 	s.DestDir = getString("destdir", config, "%PROJECTDIR%")
+	s.AcceptEmptyText = getBool("acceptemptytext", config, false)
 	s.DeleteText = getBool("deletetext", config, false)
 
 	switch ss := getString("sort", config, "moddate"); ss {

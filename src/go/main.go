@@ -88,7 +88,7 @@ func clearScreen() error {
 	return cmd.Run()
 }
 
-func verifyAndCalcHash(wavPath string, txtPath string) (string, error) {
+func verifyAndCalcHash(wavPath string, txtPath string, acceptEmptyText bool) (string, error) {
 	txt, err := os.OpenFile(txtPath, os.O_RDWR, 0666)
 	if err != nil {
 		return "", fmt.Errorf("テキストファイルが開けませんでした: %w", err)
@@ -114,8 +114,12 @@ func verifyAndCalcHash(wavPath string, txtPath string) (string, error) {
 		return "", fmt.Errorf("waveファイルが読み取れませんでした: %w", err)
 	}
 	h2 := fnv.New32a()
-	if _, err := io.Copy(h2, txt); err != nil {
+	sz, err := io.Copy(h2, txt)
+	if err != nil {
 		return "", fmt.Errorf("テキストファイルが読み取れませんでした: %w", err)
+	}
+	if sz == 0 && !acceptEmptyText {
+		return "", fmt.Errorf("空のテキストファイルは受け入れられません")
 	}
 	return string(h2.Sum(h.Sum(nil))), nil
 }
@@ -423,8 +427,9 @@ func printDetails(setting *setting, tempDir string) {
 	log.Println(suppress.Renderln("  %MYDOC%:     "), getSpecialFolderPath(CSIDL_PERSONAL))
 	log.Println()
 
-	log.Println(suppress.Renderln("  delta:"), setting.Delta)
-	log.Println(suppress.Renderln("  freshness:"), setting.Freshness)
+	log.Println(suppress.Renderln("  処理対象になる更新日時の差(秒):"), setting.Delta)
+	log.Println(suppress.Renderln("  処理対象になるファイルの新しさ(秒):"), setting.Freshness)
+	log.Println(suppress.Renderln("  空のテキストファイルを受け入れる:"), bool2str(setting.AcceptEmptyText, "はい", "いいえ"))
 	log.Println()
 
 	log.Println(caption.Renderln("フェアリーコール:"))
@@ -660,7 +665,7 @@ func process(watcher *fsnotify.Watcher, settingWatcher *fsnotify.Watcher, settin
 						continue
 					}
 				}
-				hash, err := verifyAndCalcHash(wavPath, txtPath)
+				hash, err := verifyAndCalcHash(wavPath, txtPath, setting.AcceptEmptyText)
 				if err != nil {
 					if verbose {
 						log.Println(suppress.Renderln("  まだファイルの準備が整わないので保留にします"))
