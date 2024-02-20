@@ -44,7 +44,7 @@ func New() fairy.Fairy {
 	return &voicepeak{}
 }
 
-func (vp *voicepeak) IsTarget(exePath string) bool {
+func (vp *voicepeak) IsTarget(hwnd win32.HWND, exePath string) bool {
 	return filepath.Base(exePath) == exeName
 }
 

@@ -39,7 +39,7 @@ func New() fairy.Fairy {
 	return &voisonatalk{}
 }
 
-func (vp *voisonatalk) IsTarget(exePath string) bool {
+func (vp *voisonatalk) IsTarget(hwnd win32.HWND, exePath string) bool {
 	return filepath.Base(exePath) == exeName
 }
 

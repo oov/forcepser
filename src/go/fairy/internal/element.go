@@ -170,3 +170,16 @@ func GetModulePathFromPID(pid uint32) (string, error) {
 	}
 	return syscall.UTF16ToString(buf), nil
 }
+
+func GetWindowText(hwnd win32.HWND) string {
+	n, _ := win32.SendMessageW(hwnd, win32.WM_GETTEXTLENGTH, 0, 0)
+	if n == 0 {
+		return ""
+	}
+	buf := make([]uint16, n+1)
+	n, _ = win32.SendMessageW(hwnd, win32.WM_GETTEXT, uintptr(n+1), uintptr(unsafe.Pointer(&buf[0])))
+	if n == 0 {
+		return ""
+	}
+	return syscall.UTF16ToString(buf[:n])
+}

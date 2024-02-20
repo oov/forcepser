@@ -8,7 +8,7 @@ import (
 )
 
 type Fairy interface {
-	IsTarget(exePath string) bool
+	IsTarget(hwnd win32.HWND, exePath string) bool
 	TestedProgram() string
 	Execute(hwnd win32.HWND, namer func(name, text string) (string, error)) error
 }
@@ -29,7 +29,7 @@ func (fs Fairies) Execute(namer func(name, text string) (string, error)) error {
 		return fmt.Errorf("failed to get module path: %w", err)
 	}
 	for _, f := range fs {
-		if f.IsTarget(exePath) {
+		if f.IsTarget(hwnd, exePath) {
 			err = f.Execute(hwnd, namer)
 			if err != nil {
 				return fmt.Errorf("fairy failed to work: %w", err)

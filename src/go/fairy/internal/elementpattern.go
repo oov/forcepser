@@ -185,6 +185,17 @@ func (elem *Element) SetTextViaLegacyIAccessiblePattern(text string) error {
 	return nil
 }
 
+func (elem *Element) SetTextViaWMCharSimple(window win32.HWND, text string) error {
+	u, err := syscall.UTF16FromString(text)
+	if err != nil {
+		return fmt.Errorf("failed to convert string: %w", err)
+	}
+	for _, wc := range u {
+		win32.SendMessage(window, win32.WM_CHAR, win32.WPARAM(wc), 0)
+	}
+	return nil
+}
+
 func (elem *Element) SetTextViaWMChar(window win32.HWND, text string) error {
 	// take focus
 	lia, err := elem.GetCurrentLegacyIAccessiblePattern()
@@ -214,15 +225,7 @@ func (elem *Element) SetTextViaWMChar(window win32.HWND, text string) error {
 		return fmt.Errorf("IUIAutomationTextRange.Select failed: %s", win32.HRESULT_ToString(hr))
 	}
 
-	// write
-	u, err := syscall.UTF16FromString(text)
-	if err != nil {
-		return fmt.Errorf("failed to convert string: %w", err)
-	}
-	for _, wc := range u {
-		win32.SendMessage(window, win32.WM_CHAR, win32.WPARAM(wc), 0)
-	}
-	return nil
+	return elem.SetTextViaWMCharSimple(window, text)
 }
 
 func (elem *Element) GetFirstSelection() (*win32.IUIAutomationTextRange, error) {
