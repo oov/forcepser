@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0beta3 2024-02-21
+
+- A.I.VOICE 2.3.0 用 fairycall を実装
+
 ## 1.6.0beta2 2023-12-26
 
 - 空のテキストファイルを受け入れるかどうかを設定する `acceptemptytext` をグローバルセクションに追加
