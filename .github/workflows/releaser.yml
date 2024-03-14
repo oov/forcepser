@@ -17,7 +17,7 @@ jobs:
           - msystem: CLANG64
             arch: clang-x86_64
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
       - uses: msys2/setup-msys2@v2
@@ -34,7 +34,7 @@ jobs:
           cd build
           rm -rf CMakeCache.txt && cmake -GNinja -DCMAKE_BUILD_TYPE=Release .. && cmake --build .
       - name: Upload binaries
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: bin
           path: |
@@ -46,40 +46,29 @@ jobs:
       - name: Get the version
         id: get_version
         run: echo ::set-output name=tag::${GITHUB_REF/refs\/tags\//}
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: Download artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
       - name: Create package
         run: |
+          mkdir -p dist
           cd bin
-          zip -r ../assets.zip *
+          zip -r ../dist/forcepser_${{ steps.get_version.outputs.tag }}.zip *
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
+          tag_name: ${{ steps.get_version.outputs.tag }}
           draft: true
           prerelease: false
+          files: dist/*
           body: |
             ### ダウンロード
-            
+              
             - [forcepser_${{ steps.get_version.outputs.tag }}.zip](https://github.com/oov/forcepser/releases/download/${{ steps.get_version.outputs.tag }}/forcepser_${{ steps.get_version.outputs.tag }}.zip)
             
             ### 変更点
             
             - ＊＊＊＊
-      - name: Upload Release Asset
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./assets.zip
-          asset_name: forcepser_${{ steps.get_version.outputs.tag }}.zip
-          asset_content_type: application/zip
