@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0beta4 2024-03-15
+
+- A.I.VOICE2 用 fairycall で書き出しボタン検索に失敗しやすかったのを修正
+
 ## 1.6.0beta3 2024-02-21
 
 - A.I.VOICE 2.3.0 用 fairycall を実装
