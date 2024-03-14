@@ -44,22 +44,22 @@ endif()
 add_custom_target(generate_readme COMMAND
   ${CMAKE_COMMAND}
   -Dinput_file="${PROJECT_SOURCE_DIR}/README.md"
-  -Doutput_file="${CMAKE_BINARY_DIR}/${EXPORT_DIR}/forcepser.txt"
+  -Doutput_file="${EXPORT_PATH}/forcepser.txt"
   -Dnewline="CRLF"
   -Dgit_tag="${git_tag}"
   -Dgit_revision="${git_revision}"
   -P "${PROJECT_SOURCE_DIR}/src/cmake/replace.cmake"
 )
 add_custom_target(copy_related_files
-  COMMAND ${CMAKE_COMMAND} -E copy "${PROJECT_SOURCE_DIR}/src/lua/_entrypoint.lua" "${CMAKE_BINARY_DIR}/${EXPORT_DIR}/_entrypoint.lua"
-  COMMAND ${CMAKE_COMMAND} -E copy "${PROJECT_SOURCE_DIR}/src/setting.txt-template" "${CMAKE_BINARY_DIR}/${EXPORT_DIR}/setting.txt-template"
-  COMMAND ${CMAKE_COMMAND} -E copy "${PROJECT_SOURCE_DIR}/src/setting.txt-template-old" "${CMAKE_BINARY_DIR}/${EXPORT_DIR}/setting.txt-template-old"
+  COMMAND ${CMAKE_COMMAND} -E copy "${PROJECT_SOURCE_DIR}/src/lua/_entrypoint.lua" "${EXPORT_PATH}/_entrypoint.lua"
+  COMMAND ${CMAKE_COMMAND} -E copy "${PROJECT_SOURCE_DIR}/src/setting.txt-template" "${EXPORT_PATH}/setting.txt-template"
+  COMMAND ${CMAKE_COMMAND} -E copy "${PROJECT_SOURCE_DIR}/src/setting.txt-template-old" "${EXPORT_PATH}/setting.txt-template-old"
 )
 
 add_custom_target(forcepser_exe ALL COMMAND ${CMAKE_COMMAND} -E env GOROOT="${GO_DIR}"
   "${GO_EXE}" build -x
     "-ldflags=\"-s -X \\\"main.version=${git_tag} ( ${git_revision} )\\\"\""
-    -o "${CMAKE_BINARY_DIR}/${EXPORT_DIR}/forcepser.exe"
+    -o "${EXPORT_PATH}/forcepser.exe"
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
   USES_TERMINAL
 )
