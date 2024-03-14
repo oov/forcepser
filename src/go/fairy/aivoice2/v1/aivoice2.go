@@ -54,10 +54,18 @@ func (vp *aivoice2) Execute(hwnd win32.HWND, namer func(name, text string) (stri
 	}
 
 	// find main window
-	mainWindow, err := newMainWindow(uia, hwnd)
-	if err != nil {
-		return fmt.Errorf("main window not found: %w", err)
+	var mainWindow *mainWindow
+	for deadLine := time.Now().Add(windowCreationTimeout); ; time.Sleep(windowCreationCheckInterval) {
+		if time.Now().After(deadLine) {
+			return fmt.Errorf("timeout occurred while waiting for the main window to be found: %w", err)
+		}
+		mainWindow, err = newMainWindow(uia, hwnd)
+		if err != nil {
+			continue
+		}
+		break
 	}
+
 	defer mainWindow.Release()
 
 	// click export button

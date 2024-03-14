@@ -122,7 +122,7 @@ func newMainWindow(uia *internal.UIAutomation, hwnd win32.HWND) (*mainWindow, er
 
 		export, err = window.FindFirst(win32.TreeScope_Descendants, andCond)
 		if err != nil {
-			return nil, fmt.Errorf("failed to find first: %w", err)
+			return nil, fmt.Errorf("failed to find export button from Descendants: %w", err)
 		}
 		defer export.Release()
 	}
