@@ -45,7 +45,8 @@ jobs:
     steps:
       - name: Get the version
         id: get_version
-        run: echo ::set-output name=tag::${GITHUB_REF/refs\/tags\//}
+        run: |
+          echo "tag=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v4
         with:
           submodules: recursive
