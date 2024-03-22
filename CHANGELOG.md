@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.0beta5 2024-03-23
+
+- fairycall を VoiSona Talk Editor 1.2.0.1 に合わせて調整
+- VOICEPEAK 用 fairycall の処理速度を改善
+- 起動時に fairycall が動作確認しているアプリケーションとバージョンを出力するようにした
+
 ## 1.6.0beta4 2024-03-15
 
 - A.I.VOICE2 用 fairycall で書き出しボタン検索に失敗しやすかったのを修正
