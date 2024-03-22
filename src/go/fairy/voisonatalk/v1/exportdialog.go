@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"syscall"
 
 	"github.com/oov/forcepser/fairy/internal"
 
@@ -63,24 +64,21 @@ func findExportCheckBox(elems *internal.Elements, index int, out *exportDialog) 
 }
 
 func findExportDialog(uia *internal.UIAutomation, pid win32.DWORD, mainWindow win32.HWND) (*exportDialog, error) {
-	var nameConds []*win32.IUIAutomationCondition
-	for _, s := range exportDialogTitles {
-		cond, err := uia.CreateStringPropertyConditionEx(win32.UIA_NamePropertyId, s, 0)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create name condition: %w", err)
+	windowHandle := internal.FindWindow(0, "", "", uint32(pid), func(h win32.HWND) bool {
+		if h == mainWindow {
+			return false
 		}
-		defer cond.Release()
-		nameConds = append(nameConds, cond)
-	}
-	orCond, err := uia.CreateOrCondition(nameConds...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create or condition: %w", err)
-	}
-	defer orCond.Release()
+		var buf [256]uint16
+		if ln, _ := win32.GetWindowText(h, &buf[0], int32(len(buf))); ln == 0 {
+			return false
+		}
+		name := syscall.UTF16ToString(buf[:])
+		return match(name, exportDialogTitles)
+	})
 
-	window, err := findSubWindow(uia, pid, mainWindow, orCond)
+	window, err := uia.ElementFromHandle(windowHandle)
 	if err != nil {
-		return nil, fmt.Errorf("block export dialog not found: %w", err)
+		return nil, fmt.Errorf("failed to get block export dialog: %w", err)
 	}
 	defer window.Release()
 

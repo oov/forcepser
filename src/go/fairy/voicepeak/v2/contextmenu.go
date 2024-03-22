@@ -26,9 +26,16 @@ func (bm *blockMenu) Release() {
 }
 
 func findBlockMenu(uia *internal.UIAutomation, pid win32.DWORD, mainWindow win32.HWND) (*blockMenu, error) {
-	menuWindow, err := findSubWindow(uia, pid, mainWindow)
+	menuWindowHandle := internal.FindWindow(0, "", "", uint32(pid), func(h win32.HWND) bool {
+		return h != mainWindow
+	})
+	if menuWindowHandle == 0 {
+		return nil, fmt.Errorf("menu window not found")
+	}
+
+	menuWindow, err := uia.ElementFromHandle(menuWindowHandle)
 	if err != nil {
-		return nil, fmt.Errorf("menu window not found: %w", err)
+		return nil, fmt.Errorf("failed to get menu window: %w", err)
 	}
 	defer menuWindow.Release()
 

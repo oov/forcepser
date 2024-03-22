@@ -56,11 +56,18 @@ func findLegacyControl(uia *internal.UIAutomation, window *internal.Element, con
 }
 
 func findFolderSelectDialog(uia *internal.UIAutomation, pid win32.DWORD, mainWindow win32.HWND) (*folderSelectDialog, error) {
-	cndClassName, err := uia.CreateStringPropertyConditionEx(win32.UIA_ClassNamePropertyId, folderSelectDialogClass, 0)
-	if err != nil {
-		return nil, fmt.Errorf("CreateStringPropertyCondition failed: %w", err)
+	windowHandle := internal.FindWindow(0, folderSelectDialogClass, "", uint32(pid), func(h win32.HWND) bool {
+		return h != mainWindow
+	})
+	if windowHandle == 0 {
+		return nil, fmt.Errorf("folder select dialog not found")
 	}
-	defer cndClassName.Release()
+
+	elem, err := uia.ElementFromHandle(windowHandle)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get folder select dialog: %w", err)
+	}
+	defer elem.Release()
 
 	cndFramework, err := uia.CreateStringPropertyConditionEx(win32.UIA_FrameworkIdPropertyId, folderSelectDialogFramework, 0)
 	if err != nil {
@@ -68,9 +75,9 @@ func findFolderSelectDialog(uia *internal.UIAutomation, pid win32.DWORD, mainWin
 	}
 	defer cndFramework.Release()
 
-	dialogElem, err := findSubWindow(uia, pid, mainWindow, cndClassName, cndFramework)
+	dialogElem, err := elem.FindFirst(win32.TreeScope_Element, cndFramework)
 	if err != nil {
-		return nil, fmt.Errorf("folder select dialog not found: %w", err)
+		return nil, fmt.Errorf("folder select dialog framework not matched: %w", err)
 	}
 	defer dialogElem.Release()
 
