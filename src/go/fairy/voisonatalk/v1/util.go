@@ -2,7 +2,6 @@ package voisonatalk
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/oov/forcepser/fairy/internal"
 
@@ -16,10 +15,6 @@ func match(s string, patterns []string) bool {
 		}
 	}
 	return false
-}
-
-func changeExt(path, ext string) string {
-	return path[:len(path)-len(filepath.Ext(path))] + ext
 }
 
 func findSubWindow(uia *internal.UIAutomation, pid win32.DWORD, mainWindow win32.HWND, additionalConds ...*win32.IUIAutomationCondition) (*internal.Element, error) {
