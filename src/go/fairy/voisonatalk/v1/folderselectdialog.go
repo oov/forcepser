@@ -55,7 +55,7 @@ func findLegacyControl(uia *internal.UIAutomation, window *internal.Element, con
 	return elem, nil
 }
 
-func findFolderSelectDialog(uia *internal.UIAutomation, pid win32.DWORD, mainWindow win32.HWND) (*folderSelectDialog, error) {
+func findFolderSelectDialog(uia *internal.UIAutomation, window *internal.Element) (*folderSelectDialog, error) {
 	cndClassName, err := uia.CreateStringPropertyConditionEx(win32.UIA_ClassNamePropertyId, folderSelectDialogClass, 0)
 	if err != nil {
 		return nil, fmt.Errorf("CreateStringPropertyCondition failed: %w", err)
@@ -68,9 +68,15 @@ func findFolderSelectDialog(uia *internal.UIAutomation, pid win32.DWORD, mainWin
 	}
 	defer cndFramework.Release()
 
-	dialogElem, err := findSubWindow(uia, pid, mainWindow, cndClassName, cndFramework)
+	andCond, err := uia.CreateAndCondition(cndClassName, cndFramework)
 	if err != nil {
-		return nil, fmt.Errorf("folder select dialog not found: %w", err)
+		return nil, fmt.Errorf("failed to create and condition: %w", err)
+	}
+	defer andCond.Release()
+
+	dialogElem, err := window.FindFirst(win32.TreeScope_Descendants, andCond)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find folder select dialog: %w", err)
 	}
 	defer dialogElem.Release()
 

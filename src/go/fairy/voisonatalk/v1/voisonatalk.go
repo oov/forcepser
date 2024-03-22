@@ -44,7 +44,7 @@ func (vp *voisonatalk) IsTarget(hwnd win32.HWND, exePath string) bool {
 }
 
 func (vp *voisonatalk) TestedProgram() string {
-	return "VoiSona Talk Editor 1.1.5.1"
+	return "VoiSona Talk Editor 1.2.0.1"
 }
 
 func (vp *voisonatalk) Execute(hwnd win32.HWND, namer func(name, text string) (string, error)) error {
@@ -157,7 +157,7 @@ func (vp *voisonatalk) Execute(hwnd win32.HWND, namer func(name, text string) (s
 		if time.Now().After(deadLine) {
 			return fmt.Errorf("waiting for folder select dialog creation timed out: %w", err)
 		}
-		folderSelectDialog, err = findFolderSelectDialog(uia, pid, hwnd)
+		folderSelectDialog, err = findFolderSelectDialog(uia, exportDialog.window)
 		if err != nil {
 			continue
 		}
