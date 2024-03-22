@@ -38,6 +38,8 @@ var verbose bool
 var preventClear bool
 var version string
 
+var fairies = fairy.Fairies{aivoice2.New(), voicepeak.New(), voisonatalk.New()}
+
 type file struct {
 	Filepath string
 	Hash     string
@@ -270,7 +272,7 @@ func watchFairyCall(ctx context.Context, notify chan<- map[string]struct{}, hk *
 	for {
 		select {
 		case complete := <-hk.Notify:
-			if err := (fairy.Fairies{aivoice2.New(), voicepeak.New(), voisonatalk.New()}).Execute(namer); err != nil {
+			if err := fairies.Execute(namer); err != nil {
 				if !errors.Is(err, fairy.ErrTargetNotFound) {
 					log.Println(warn.Renderln("  フェアリー: 処理を完遂できませんでした:", err))
 				} else {
@@ -436,6 +438,10 @@ func printDetails(setting *setting, tempDir string) {
 	log.Println(caption.Renderln("フェアリーコール:"))
 	if setting.FairyCall != "" {
 		log.Println(suppress.Renderln("  呼び出しキー: "), setting.FairyCall)
+		log.Println(suppress.Renderln("  動作確認済みアプリケーション:"))
+		for _, f := range fairies {
+			log.Println(suppress.Renderln("    "), f.TestedProgram())
+		}
 	} else {
 		log.Println(suppress.Renderln("  呼び出しキーの設定が行われていないため使用できません"))
 	}
