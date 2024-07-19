@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0beta6 2024-07-19
+
+- テキストの自動入力の挙動を改善
+
 ## 1.6.0beta5 2024-03-23
 
 - fairycall を VoiSona Talk Editor 1.2.0.1 に合わせて調整
