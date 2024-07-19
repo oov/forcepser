@@ -95,9 +95,17 @@ func (vp *aivoice2) Execute(hwnd win32.HWND, namer func(name, text string) (stri
 	}
 	dir := filepath.Dir(dummyPath)
 
-	str, err := exportDialog.edit.GetTextViaValuePattern()
-	if err != nil {
-		return fmt.Errorf("failed to get text from edit: %w", err)
+	// read edit text
+	var str string
+	for deadLine := time.Now().Add(windowCreationTimeout); ; time.Sleep(windowCreationCheckInterval) {
+		if time.Now().After(deadLine) {
+			return fmt.Errorf("waiting for edit control to be found timed out: %w", err)
+		}
+		str, err = exportDialog.edit.GetTextViaValuePattern()
+		if err != nil {
+			continue
+		}
+		break
 	}
 
 	if str != dir {
