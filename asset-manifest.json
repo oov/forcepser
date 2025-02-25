@@ -1,0 +1,19 @@
+{
+  "files": {
+    "main.css": "./static/css/main.6ae413dc.css",
+    "main.js": "./static/js/main.84664a48.js",
+    "static/media/cevio_menu3.png": "./static/media/cevio_menu3.9b435b3e72c899b49569.png",
+    "static/media/bouyomi_file.png": "./static/media/bouyomi_file.54211c3008370430276a.png",
+    "static/media/aitalk6_save.png": "./static/media/aitalk6_save.89676420c2a3497bfa63.png",
+    "static/media/cevio_talk.png": "./static/media/cevio_talk.3aca87da7755cbb661ee.png",
+    "static/media/cevio_export.png": "./static/media/cevio_export.72e3f158e3c3d74bab58.png",
+    "static/media/coeiroink_options.png": "./static/media/coeiroink_options.d3b12457e7d2016ac83e.png",
+    "index.html": "./index.html",
+    "main.6ae413dc.css.map": "./static/css/main.6ae413dc.css.map",
+    "main.84664a48.js.map": "./static/js/main.84664a48.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.6ae413dc.css",
+    "static/js/main.84664a48.js"
+  ]
+}
