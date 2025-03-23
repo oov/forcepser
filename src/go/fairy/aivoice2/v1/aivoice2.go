@@ -42,7 +42,7 @@ func (vp *aivoice2) IsTarget(hwnd win32.HWND, exePath string) bool {
 }
 
 func (vp *aivoice2) TestedProgram() string {
-	return "A.I.VOICE 2.3.0"
+	return "A.I.VOICE 2.10.1"
 }
 
 func (vp *aivoice2) Execute(hwnd win32.HWND, namer func(name, text string) (string, error)) error {

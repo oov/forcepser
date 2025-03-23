@@ -48,7 +48,7 @@ func (vp *voicepeak) IsTarget(hwnd win32.HWND, exePath string) bool {
 }
 
 func (vp *voicepeak) TestedProgram() string {
-	return "VOICEPEAK 1.2.1"
+	return "VOICEPEAK 1.2.14"
 }
 
 func (vp *voicepeak) Execute(hwnd win32.HWND, namer func(name, text string) (string, error)) error {

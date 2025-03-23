@@ -44,7 +44,7 @@ func (vp *voisonatalk) IsTarget(hwnd win32.HWND, exePath string) bool {
 }
 
 func (vp *voisonatalk) TestedProgram() string {
-	return "VoiSona Talk Editor 1.2.0.1"
+	return "VoiSona Talk Editor 1.2.10.2"
 }
 
 func (vp *voisonatalk) Execute(hwnd win32.HWND, namer func(name, text string) (string, error)) error {
