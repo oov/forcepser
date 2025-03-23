@@ -136,7 +136,7 @@ func (vp *aivoice2) Execute(hwnd win32.HWND, namer func(name, text string) (stri
 			}
 			str, err = exportDialog.edit.GetTextViaValuePattern()
 			if err != nil {
-				return fmt.Errorf("failed to get text from edit: %w", err)
+				return fmt.Errorf("failed to get edit text (clear): %w", err)
 			}
 			if str != "" {
 				continue
@@ -162,7 +162,7 @@ func (vp *aivoice2) Execute(hwnd win32.HWND, namer func(name, text string) (stri
 			}
 			str, err = exportDialog.edit.GetTextViaValuePattern()
 			if err != nil {
-				return fmt.Errorf("failed to get text from edit: %w", err)
+				return fmt.Errorf("failed to get edit text (verify): %w", err)
 			}
 			if str != dir {
 				continue
