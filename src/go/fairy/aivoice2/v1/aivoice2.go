@@ -25,6 +25,7 @@ var (
 
 	windowCreationTimeout       = 5 * time.Second
 	windowCreationCheckInterval = 40 * time.Millisecond
+	windowUpdateInterval        = 300 * time.Millisecond
 )
 
 type aivoice2 struct{}
@@ -143,11 +144,17 @@ func (vp *aivoice2) Execute(hwnd win32.HWND, namer func(name, text string) (stri
 			break
 		}
 
-		err = exportDialog.edit.SetTextViaWMCharSimple(mainWindow.view, dir)
+		// Is there a bug in the processing order of Flutter?
+		// If you select all with Ctrl+A and then delete all with BS key input,
+		// and then immediately enter a string with WM_CHAR, some characters may be missed or crashed.
+		// The only way to deal with it is to add a delay.
+		// This delay is quite large, but it should be fine because it is used only once when the settings are different.
+		time.Sleep(windowUpdateInterval)
+
+		err = exportDialog.edit.SetTextViaWMCharSimplePost(mainWindow.view, dir)
 		if err != nil {
 			return fmt.Errorf("failed to set text to edit")
 		}
-		exportDialog.export.SetFocus()
 
 		for deadLine := time.Now().Add(windowCreationTimeout); ; time.Sleep(windowCreationCheckInterval) {
 			if time.Now().After(deadLine) {

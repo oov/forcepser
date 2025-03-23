@@ -196,6 +196,17 @@ func (elem *Element) SetTextViaWMCharSimple(window win32.HWND, text string) erro
 	return nil
 }
 
+func (elem *Element) SetTextViaWMCharSimplePost(window win32.HWND, text string) error {
+	u, err := syscall.UTF16FromString(text)
+	if err != nil {
+		return fmt.Errorf("failed to convert string: %w", err)
+	}
+	for _, wc := range u[0 : len(u)-1] {
+		win32.PostMessage(window, win32.WM_CHAR, win32.WPARAM(wc), 0)
+	}
+	return nil
+}
+
 func (elem *Element) SetTextViaWMChar(window win32.HWND, text string) error {
 	// take focus
 	lia, err := elem.GetCurrentLegacyIAccessiblePattern()
