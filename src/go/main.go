@@ -83,6 +83,7 @@ var (
 	warn     colorizer = color.Yellow
 	caption  colorizer = color.Bold
 	suppress colorizer = color.Gray
+	info     colorizer = color.Cyan
 )
 
 func clearScreen() error {
@@ -276,7 +277,12 @@ func watchFairyCall(ctx context.Context, notify chan<- map[string]struct{}, hk *
 				if !errors.Is(err, fairy.ErrTargetNotFound) {
 					log.Println(warn.Renderln("  フェアリー: 処理を完遂できませんでした:", err))
 				} else {
-					log.Println(warn.Renderln("  フェアリー: アクティブなウィンドウが処理対象ではありません。"))
+					log.Println(warn.Renderln("  フェアリー: アクティブなウィンドウがフェアリーコール対応アプリケーションではありません。"))
+					log.Println(info.Renderln("    機能説明:"), "https://oov.github.io/j/forcepser/fairycall/")
+					log.Println(suppress.Renderln("    フェアリーコール対応アプリケーション及び動作確認済みバージョン:"))
+					for _, f := range fairies {
+						log.Println(suppress.Renderln("     ", f.TestedProgram()))
+					}
 				}
 			}
 			complete()
@@ -436,11 +442,12 @@ func printDetails(setting *setting, tempDir string) {
 	log.Println()
 
 	log.Println(caption.Renderln("フェアリーコール:"))
+	log.Println(info.Renderln("  機能説明:"), "https://oov.github.io/j/forcepser/fairycall/")
 	if setting.FairyCall != "" {
 		log.Println(suppress.Renderln("  呼び出しキー: "), setting.FairyCall)
-		log.Println(suppress.Renderln("  動作確認済みアプリケーション:"))
+		log.Println(suppress.Renderln("  フェアリーコール対応アプリケーション及び動作確認済みバージョン:"))
 		for _, f := range fairies {
-			log.Println(suppress.Renderln("    "), f.TestedProgram())
+			log.Println(suppress.Renderln("   "), f.TestedProgram())
 		}
 	} else {
 		log.Println(suppress.Renderln("  呼び出しキーの設定が行われていないため使用できません"))
