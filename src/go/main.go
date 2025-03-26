@@ -400,6 +400,7 @@ func bool2str(b bool, t string, f string) string {
 }
 
 func printDetails(setting *setting, tempDir string) {
+	var hasWarn bool
 	log.Println(caption.Renderln("AviUtl プロジェクト情報:"))
 	proj, err := readGCMZDropsData()
 	if err != nil {
@@ -463,6 +464,7 @@ func printDetails(setting *setting, tempDir string) {
 		log.Println(suppress.Renderln("  フラグ:"), a.Flags)
 		if !a.Exists() {
 			log.Println(warn.Renderln("  [警告] 対象EXE が見つからないため設定を無視します"))
+			hasWarn = true
 		}
 	}
 	log.Println()
@@ -487,9 +489,14 @@ func printDetails(setting *setting, tempDir string) {
 		log.Println(suppress.Renderln("  テキストファイルの削除:"), bool2str(r.DeleteText, "する", "しない"))
 		if !r.ExistsDir() {
 			log.Println(warn.Renderln("  [警告] 対象フォルダー が見つからないため設定を無視します"))
+			hasWarn = true
 		}
 	}
 	log.Println()
+	if hasWarn {
+		log.Println(warn.Renderln("  [警告] 設定の中に問題があるため一部の機能が無効化されています"))
+		log.Println()
+	}
 }
 
 func loadSetting(path string, tempDir string, projectDir string) (*setting, error) {
