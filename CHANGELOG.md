@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0beta9 2026-08-20
+
+- fairycall が VOICEPEAK 1.2.23 で動かなくなったのを修正
+
 ## 1.6.0beta8 2025-03-27
 
 - A.I.VOICE2 で入力欄への書き込み前にウェイトを追加
