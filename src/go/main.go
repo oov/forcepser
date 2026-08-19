@@ -17,7 +17,7 @@ import (
 
 	"github.com/oov/forcepser/fairy"
 	"github.com/oov/forcepser/fairy/aivoice2/v1"
-	"github.com/oov/forcepser/fairy/voicepeak/v2"
+	"github.com/oov/forcepser/fairy/voicepeak/v3"
 	"github.com/oov/forcepser/fairy/voisonatalk/v1"
 	"github.com/oov/forcepser/hotkey"
 
